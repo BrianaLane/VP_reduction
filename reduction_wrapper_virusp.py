@@ -22,6 +22,7 @@ import os.path as op
 from os import environ
 import re
 import string
+import cosmics
 from virus_p_config import * 
 
 #################################
@@ -43,6 +44,17 @@ if not CUREBIN:
     print("Please set CUREBIN as  environment variable or in the script")
     sys.exit(1)
 
+#checking that LRS2 is defined in specconf.h 
+cureversion = os.popen(op.join(CUREBIN, 'cureversion')).readlines()
+spec_define = cureversion[4].split(' ')[1]
+instrument = spec_define.rstrip('\n')
+
+if instrument == 'VIRUS-P':
+    print ('CURE is set for VIRUS-P reduction')
+else: 
+    print ('You need to update specconf.h in CURE to define VIRUS-P')
+    sys.exit('Right now specconf.h defines '+instrument)
+
 ###################################
 # Defining which functions to run #
 ###################################
@@ -50,18 +62,20 @@ if not CUREBIN:
 #if basic reduction is run need to specify specific routines to run 
 # divide pixel flat and masterdark are not being used now
 if basic:
-    dividepf        = False
+    rmcosmics       = rmCosmics 
     normalize       = True 
     masterdark      = True
     masterarc       = True  
     mastertrace     = True 
+    sort_sci        = True
+
 else:
-    dividepf        = False
+    rmcosmics       = False
     normalize       = False  
     masterdark      = False
     masterarc       = False  
     mastertrace     = False
-    fixorange       = False
+    sort_sci        = False
 
 # This makes sure that the redux folder is only overwritten if the user chooses to run basic reduction
 # If you user only wants to run deformer, skysubtract, fiberextract, or mkcube it used the data in redux 
@@ -71,10 +85,6 @@ if basic:
 else:
     all_copy = False
     RESTART_FROM_SCRATCH = False
-
-#residual parameters from that do not need to be changed for automated use 
-usemapping       = False # if headers are messed up, manual map IFUSLOT to SPECID 
-initial_base     = ''
 
 ########################
 # Specifying CURE opts #
@@ -86,13 +96,10 @@ headfitsopts    = "-m -k EXPTIME -v 1 -V"
 darkopts        = "--maxmem 1024 -s -t -m -k 2.8" 
 arcopts         = "--maxmem 1024 -s -t -m -k 2.8"
 traceopts       = "--maxmem 1024 -s -t -m -k 2.8"
-deformeropts    = "-p 8 -C 8 -I [1.8,0.12,0.0,2.0] --debug --dump_psf_data"
-subskyopts      = "-J --output-both -w "+str(window_size)+" -k "+str(sky_kappa[0])+','+str(sky_kappa[1])+" -m "+str(smoothing)+" -T "+str(sn_thresh)
+deformeropts    = "-F 0,2048 -p 8 -C 8 -I [1.8,0.12,0.0,2.0] -P [0.0,0.5,0.15,1.0] --debug --dump_psf_data"
+subskyopts      = "--output-both -w "+str(window_size)+" -k "+str(sky_kappa[0])+','+str(sky_kappa[1])+" -m "+str(smoothing)+" -T "+str(sn_thresh)
 fibextractopts  = "-P"
-if diffAtmRef:
-    cubeopts        = "-a "+str(sky_sampling)+" -k "+str(max_distance)+" -s "+str(cube_sigma)+" -d "
-else:
-    cubeopts        = "-a "+str(sky_sampling)+" -k "+str(max_distance)+" -s "+str(cube_sigma)
+cubeopts        = "-a "+str(sky_sampling)+" -k "+str(max_distance)+" -s "+str(cube_sigma)
 
 #########################
 # Defining data folders #
@@ -110,8 +117,8 @@ drk_dir  = "dark"
 ##########################
 
 #dictionary of data type folders 
-#DIR_DICT     = {    0:zro_dir,    1:drk_dir,    2:cmp_dir,    3:flt_dir,    4:sci_dir } # Dictionary for looping through directory names
-DIR_DICT     = {    0:zro_dir,    1:cmp_dir,    2:flt_dir,    3:sci_dir }
+DIR_DICT     = {    0:zro_dir,    1:drk_dir,    2:cmp_dir,    3:flt_dir,    4:sci_dir } # Dictionary for looping through directory names
+
 #############################
 # Define config directories #
 #############################
@@ -142,12 +149,12 @@ class VirusFrame:
             self.basename, temp1        = op.basename ( self.filename ).split('.')
             self.clean                  = CLEAN_AFTER_DONE
 
-            self.actionbase = initial_base  
+            self.actionbase = ''  
             
             ###### READ IN THE HEADER AND NECESSARY KEYWORDS ######
             hdulist           = pyfits.open ( filename )
-            self.trimsec      = "\"" + re.split('[\[ \] ]',hdulist[0].header['TRIMSEC'])[1] + "\""
-            self.biassec      = "\"" + re.split('[\[ \] ]',hdulist[0].header['BIASSEC'])[1] + "\""
+            #self.trimsec      = "\"" + re.split('[\[ \] ]',hdulist[0].header['TRIMSEC'])[1] + "\""
+            #self.biassec      = "\"" + re.split('[\[ \] ]',hdulist[0].header['BIASSEC'])[1] + "\""
 
             obj_split        = hdulist[0].header['OBJECT'].split(' ')
             self.isdith      = len(obj_split)
@@ -244,7 +251,27 @@ def run_cure_command(command, suppress_output=0, debug=1):
         return os.system(op.join(CUREBIN, command) +' 1>>output.log  2>> error.log')
     else:
         return os.system(op.join(CUREBIN, command))
+
+
+def updateheader(frames):
+    
+    filenames = [op.join ( f.origloc, f.basename + '.fits') for f in frames]
+    #assume the gain and readnoise is the same for all images because they are all taken with the same detector
+    gain1 = f.orggain
+    read1 = f.orgrdnoise
+
+    command1 = 'headfits -a -t float -k GAIN -v ' + str(gain1) + ' -V "same as GAIN1 added for CURE"'
+    command2 = 'headfits -a -t float -k RDNOISE -v ' + str(read1) + ' -V "same as READNOISE1 added for CURE"'
+
+    for i in xrange(len(filenames)):
+        command1 = command1 + ' ' + filenames[i]
+        command2 = command2 + ' ' + filenames[i]        
+
+    run_cure_command( command1, 0 )
+    run_cure_command( command2, 0 )
         
+    return command1
+
         
 def mkerrorframe(frames):
     
@@ -308,6 +335,39 @@ def meanframefits(dest_dir, basename , opts, frames):
     [f.addbase ('master') for f in frames]
 
     return command
+
+def meandarkfits(dest_dir, basename , opts, frames):
+    
+    filenames = [op.join ( f.origloc, f.actionbase + f.basename + '.fits') for f in frames]
+
+    mastername = op.join ( dest_dir , basename + '.fits')
+    
+    command = 'meanfits %s -o %s' % (opts,mastername)  
+    
+    for i in xrange(len(filenames)):
+        command = command + ' ' + filenames[i]
+        
+    run_cure_command( command, 0 )
+    
+    [f.addbase ('master') for f in frames]
+
+    return command
+
+def subtractdark(frames, masterdarkname, drk_scale):
+        
+    filenames = [op.join ( f.origloc, f.actionbase + f.basename + '.fits') for f in frames]
+        
+    #scale the masterdark to the exposure time of the science frames
+    command_1 = 'multiplyfits -p d%s_ -c %s' % ( drk_scale,drk_scale ) 
+    command_1 = command_1 + ' ' + masterdarkname    
+    run_cure_command( command_1, 0 )
+
+    #subtract the scaled masterdark from the science frames 
+    command_2 = 'subtractfits -p '' -f %s' % ( masterdarkname ) 
+    command_2 = command_2 + ' ' + filenames
+    run_cure_command( command_2, 0 )
+
+    return command_2
     
 
 def extractfits(trimsec, frames):
@@ -328,7 +388,7 @@ def extractfits(trimsec, frames):
 
 def addphotonnoise(frames):
 
-    command = 'addphotonnoise'
+    command = 'addphotonnoise --gain_key GAIN1'
     
     filenames = [op.join ( f.origloc, f.actionbase + f.basename + '.fits') for f in frames]
 
@@ -406,93 +466,136 @@ def meanlampfits(dest_dir, basename , opts, frames):
     run_cure_command( command, 0 )
     
     return command
- 
-def deformer_master(mastertrace,masterarc,linesfile,wave_range,ref_line,binning,opts):
 
-    if binning == '2':
-        frange = '0,1025'
-    else:
-        frange = '0,2065'
+
+def rmcosmicfits(frames):
+
+    filenames = [op.join ( f.origloc, f.actionbase + f.basename + '.fits') for f in frames]
+    
+    for i in xrange(len(filenames)):
+
+        print (filenames[i])
+
+        array, header = cosmics.fromfits(filenames[i])
+        # array is a 2D numpy array
+
+        im_gain = header['GAIN1']
+        im_RN = header['RDNOISE1']
+
+        # Build the object :
+        c = cosmics.cosmicsimage(array, gain=im_gain, readnoise=im_RN, sigclip = 7.0, sigfrac = 0.3, objlim = 7.0)
+        # There are other options, check the manual...
+
+        # Run the full artillery :
+        c.run(maxiter = 4)
+
+        # Write the cleaned image into a new FITS file, conserving the original header :
+        cosmics.tofits(filenames[i], c.cleanarray, header)
+
+        # If you want the mask, here it is :
+        #cosmics.tofits("s20160909T093737.7_066LL_sci_mask.fits", c.mask, header)
+
+ 
+def deformer_master(mastertrace,masterarc,linesfile,wave_range,ref_line,opts):
 
     wave_range = str(wave_range[0])+','+str(wave_range[1])
     
-    command = 'deformer %s -s %s -W %s -F %s -o \"%s\" -l %s -a %s %s' % (opts,ref_line,wave_range,frange,redux_dir,linesfile,masterarc,mastertrace)  
+    command = 'deformer %s -s %s -W %s -o \"%s\" -l %s -a %s %s' % (opts,ref_line,wave_range,redux_dir,linesfile,masterarc,mastertrace)  
 
     run_cure_command( command, 0 )
 
     return command   
 
-def deformer(mastertrace,masterarc,linesfile,wave_range,ref_line,binning,opts):
 
-    if binning == '2':
-        frange = '0,1025'
-    else:
-        frange = '0,2065'
+def deformer(sciframes,masterdist,masterfmod,outpath,wave_range,ref_line,opts):
+
+    filenames = [op.join(f.origloc, f.basename + '.fits') for f in sciframes]
 
     wave_range = str(wave_range[0])+','+str(wave_range[1])
     
-    command = 'deformer %s -s %s -W %s -F %s -o \"%s\" -l %s -a %s %s' % (opts,ref_line,wave_range,frange,redux_dir,linesfile,masterarc,mastertrace)  
+    command = 'deformer -d %s -f %s %s -s %s -W %s -o \"%s\"' % (masterdist,masterfmod,opts,ref_line,wave_range,outpath)  
+
+    for i in xrange(len(filenames)):
+        command = command + ' ' + filenames[i]
 
     run_cure_command( command, 0 )
 
     return command
     
     
-def subtractsky(frames,distmodel,fibermodel,opts,skymaster=""):
-    
-    filenames = [(redux_dir + '/' + sci_dir + '/pses' + f.basename + '.fits') for f in frames]
+def subtractsky(frames,opts):
 
-    for f in filenames:
+    for f in frames:
+
+        filename = op.join(f.origloc, f.basename + '.fits')
+        distname = op.join(f.origloc, f.basename + '.dist')
+        fmodname = op.join(f.origloc, f.basename + '.fmod')
         
-        command = 'subtractsky %s %s -d %s -f %s %s' % (opts,skymaster,distmodel,fibermodel,f)  
+        command = 'subtractsky %s -d %s -f %s %s' % (opts,distname,fmodname,filename)  
 
         run_cure_command( command, 0 )
 
     return command
-
     
-def fibextract_Resample(frames,base,distmodel,fibermodel,wave_range,nsample,use_ap_corr,opts):
+    
+def subtractsky_frame(frame,skyframe,opts):
 
-    filenames = [(redux_dir + '/' + sci_dir + '/' + base + f.basename + '.fits') for f in frames]
+    filename = op.join(frame.origloc, frame.basename + '.fits')
+    distname = op.join(frame.origloc, frame.basename + '.dist')
+    fmodname = op.join(frame.origloc, frame.basename + '.fmod')
+
+    filesky = op.join(skyframe.origloc, skyframe.basename + '.fits')
+    distsky = op.join(skyframe.origloc, skyframe.basename + '.dist')
+    fmodsky = op.join(skyframe.origloc, skyframe.basename + '.fmod')
+
+    skyframeopts = '-X '+filesky+' -D '+distsky+' -F '+fmodsky
+    
+    command = 'subtractsky %s -d %s -f %s %s' % (opts,distname,fmodname,skyframeopts,filename)  
+
+    run_cure_command( command, 0 )
+
+    return command
+    
+def fibextract_Resample(filenames,wave_range,nsample,opts):
 
     wave_range = str(wave_range[0])+','+str(wave_range[1])
 
-    if use_ap_corr:
-        ap_corr = '-c'
-    else:
-        ap_corr = ''
-
     for f in filenames:
+
+        dist = op.dirname( f ) + op.basename( f ).split('.') + '.dist'
+        fmod = op.dirname( f ) + op.basename( f ).split('.') + '.fmod'
     
-        command = 'fiberextract %s %s -p FeR -W %s -n %s -d %s -f %s %s' %(opts,ap_corr,wave_range,nsample,distmodel,fibermodel,f)
+        command = 'fiberextract %s -p FeR -W %s -n %s -d %s -f %s %s' %(opts,wave_range,nsample,dist,fmod,f)
         
         run_cure_command( command, 0 )
 
     return command
 
 
-def fibextract(frames,base,distmodel,fibermodel,use_ap_corr,opts):
-
-    filenames = [(redux_dir + '/' + sci_dir + '/' + base + f.basename + '.fits') for f in frames]
+def fibextract(filenames,opts):
 
     wave_range = str(wave_range[0])+','+str(wave_range[1])
 
-    if use_ap_corr:
-        ap_corr = '-c'
-    else:
-        ap_corr = ''
-
     for f in filenames:
+
+        dist = op.dirname( f ) + op.basename( f ).split('.') + '.dist'
+        fmod = op.dirname( f ) + op.basename( f ).split('.') + '.fmod'
     
-        command = 'fiberextract %s %s -x -d %s -f %s %s' %(opts,ap_corr,distmodel,fibermodel,f)
+        command = 'fiberextract %s -x -d %s -f %s %s' %(opts,dist,fmod,f)
         
         run_cure_command( command, 0 )
 
     return command
 
-def mkcube(ifufile,ditherfile,outname,opts):
+def mkcube(ifufile,ditherfile,outname,diffatmref,opts):
+
+    #the default for the DAR correction on CURE is True so adding -d turns off DAR correction
+    if diffatmref:
+        dar = ""
+    else:
+        dar = "-d"
     
-    command = 'mkcube %s -o %s -i %s %s' %(opts,outname,ifufile,ditherfile)
+    command = 'mkcube %s %s -o %s -i %s %s' %(opts,dar,outname,ifufile,ditherfile)
         
     run_cure_command( command, 0 )
 
@@ -545,7 +648,6 @@ def initial_setup (redux_dir = None, DIR_DICT = None):
             os.mkdir ( op.join ( redux_dir, DIR_DICT[i] ) )
         #Loop through the files and find the ones that match the DIR_DICT data type
         typ_files = [f for f in filenames if file_typ_dict[f] == DIR_DICT[i]]  
-        print (DIR_DICT[i]+': Found '+str(len(typ_files))+' files')
 
         # Loop through the retrieved files names to copy to new structure
         # Create a VirusFrame class for each frame that can maintain info for each original frame
@@ -563,7 +665,7 @@ def initial_setup (redux_dir = None, DIR_DICT = None):
                         
     return vframes 
 
-def basicred(redux_dir, DIR_DICT, basic = False, dividepf = False,
+def basicred(redux_dir, DIR_DICT, basic = False,
               normalize = False, masterdark = False, masterarc = False, mastertrace = False):
     '''
     Running the basic reduction which includes:
@@ -575,7 +677,6 @@ def basicred(redux_dir, DIR_DICT, basic = False, dividepf = False,
     6) Subtract master bias from cmp/flt/sci frames
     7) ccdcombine frames which puts units in e-
     8) add photon noise to combined frames
-    9) divide pixelflat from cmp/flt/sci frames
     10) normalize cmps and flts 
     11) combine cmps and flts into masterarc and mastertrac
     '''
@@ -590,9 +691,63 @@ def basicred(redux_dir, DIR_DICT, basic = False, dividepf = False,
     cframes = [v for v in vframes if v.type == "flat" or v.type == "comp"] # gives "flt" and "cmp" frames
     lframes = [v for v in vframes if v.type == "comp"] # gives just "cmp" frames
     fframes = [v for v in vframes if v.type == "flat"] # gives just "flt" frames
+    zframes = [v for v in vframes if v.type == "zero"]
     sframes = [v for v in vframes if v.type == "object"] # gives just "sci" frames
 
+    #check that there are files for all of the needed cal data 
+    #Script ends if missing data 
+    if len(zframes) == 0:
+        sys.exit('No bias frames provided')
+    else:
+        print ('Found '+str(len(zframes))+' bias frames')
+
+    if len(fframes) == 0:
+        sys.exit('No flat frames provided')
+    else:
+        print ('Found '+str(len(fframes))+' flat frames')
+
+    if len(lframes) == 0:
+        sys.exit('No comp frames provided')   
+    else:    
+        print ('Found '+str(len(lframes))+' comp frames')
+
+    #darks are optional so if there are non the script can continue
+    #If darks found and user choose subDarks: a masterdark is created and subtracted from science frames
+    print ('Found '+str(len(dframes))+' dark frames')
+    if len(dframes) != 0:
+        masterdark      = subDarks
+        subtractdark    = subDarks
+    else:
+        masterdark      = False
+        subtractdark    = False    
+
+    #Checks that there are science frames for each standar,sky or science object 
+    #If none found for one object: script ends and prints all sci objects found
+    print ('Found '+str(len(sframes))+' science frames')
+    sci_obj_names = [s.object for s in sframes]     #finds all science objects in data provided 
+    sci_obj_names = list(set(sci_obj_names))    #compresses list so one of each object 
+    object_list = standard_frames + sky_frames + science_frames #combine all objects to iterate through
+    for o in object_list:
+        stframes = [s for s in sframes if s.object == o]
+        if len(stframes) == 0:
+            print ('No '+o+' frames found')
+            sys.exit('Science objects found: '+str(sci_obj_names))
+        else:
+            print ('    Found '+str(len(stframes))+' '+o+' frames')
+
     file_binning = vframes[0].binning[0] #This will equal 2 if the files are binned, assumed to be the same for all files
+
+    #set trimsec and biassec based on if the data is binned or unbinned
+    #can't trust header values 
+
+    if file_binning == '2':
+        print ('FILES ARE BINNED')
+        biassec="1029:1056,2:2047"  # Biassec assumed to be the same for all frames
+        trimsec="1:1024,1:2048"     # Trimsec assumed to be the same for all frames 
+    else:
+        print ('FILES ARE UNBINNED')
+        biassec="2053:2080,2:2047"  # Biassec assumed to be the same for all frames
+        trimsec="1:2048,1:2048"     # Trimsec assumed to be the same for all frames 
 
     #make a copy of the virus_p_config file to be added to your directory
     #if the file exists - remove the file and replace it.
@@ -604,8 +759,10 @@ def basicred(redux_dir, DIR_DICT, basic = False, dividepf = False,
 
 
     if basic:
-        trimsec = vframes[0].trimsec # Trimsec assumed to be the same for all frames 
-        biassec = vframes[0].biassec # Biassec assumed to be the same for all frames
+        print ('*******************************')
+        print ('* UPDATE HEADER KEYS FOR CURE *')
+        print ('*******************************')
+        updateheader ( vframes)               # for all frames
         print ('************************')
         print ('* MAKE ERROR FRAME FOR *')
         print ('************************')
@@ -618,12 +775,18 @@ def basicred(redux_dir, DIR_DICT, basic = False, dividepf = False,
         print ('* EXTRACT DATA REGION FOR *')
         print ('***************************')
         extractfits ( trimsec, vframes)       # for all frames
-        
-        vframesselect  = [v for v in vframes if v.type == "zero"] 
+
+        # Remove cosmic rays using L.A.cosmic
+        if rmcosmics:
+            print ('***************************************')
+            print ('* REMOVE COSMIC RAYS (SCI IMAGES) FOR *')
+            print ('***************************************')
+            rmcosmicfits ( sframes )       # for sci frames - because this is slow                    
+    
         print ('************************')
         print ('* BUILD MASTERBIAS FOR *')
         print ('************************')
-        meanframefits   ( redux_dir, 'masterbias', meanfitsopts, vframesselect ) # meanfits for masterbias for unique specid
+        meanframefits   ( redux_dir, 'masterbias', meanfitsopts, zframes ) # meanfits for masterbias
         masterbiasname = op.join ( redux_dir, 'masterbias.fits' ) 
         #oframesselect  = [o for o in oframes] 
         print ('***************************')
@@ -635,23 +798,24 @@ def basicred(redux_dir, DIR_DICT, basic = False, dividepf = False,
         print ('* MULTIPYING BY GAIN *')
         print ('**********************')
         addphotonnoise ( oframes ) # for all frames
-
-    # Dividing by Pixel Flat
-    if dividepf:
-        print ('*************************')
-        print ('* DIVDING BY PIXEL FLAT *')
-        print ('*************************')
-        pflat = op.join( pixflatdir, "pixelflat_cam{:03d}_{:s}.fits".format( uca, side.upper() ) )
-        opt = "--file {:s}".format(pflat)
-        dividepixelflat(oframes)
     
     # Create Master Dark Frames
     if masterdark:
-        print ('***********************')
-        print ('* BUILDING MASTERDARK *')
-        print ('***********************')
-        #dframesselect = [d for d in dframes if d.specid == uca] 
-        meanframefits ( redux_dir, 'masterdark', meanfitsopts, dframes ) # meanfits for masterdark for unique specid
+        print ('*******************************************************')
+        print ('* BUILDING MASTERDARK and SUBTRACTING FROM SCI FRAMES *')
+        print ('*******************************************************')
+        sci_exptime = list(set([float(s.exptime) for s in sframes]))
+        drk_exptime = list(set([float(d.exptime) for d in dframes]))
+        for e in sci_exptime:
+            close_drk = min(drk_exptime, key=lambda x:abs(x-e))
+            dframesselect = [d for d in dframes if d.exptime == close_drk] 
+            meandarkfits (redux_dir, 'masterdark_'+close_drk+'sec', meanfitsopts, dframesselect ) # meanfits for masterdark for unique specid
+       
+            #Subtracts Master Dark from Science Frames  
+            scale_drk = e/close_drk
+            sframesselect = [s for s in sframes if s.exptime == e] 
+            masterdarkname = op.join ( redux_dir, 'masterdark_'+close_drk+'sec' + '.fits' )
+            subtractdark ( sframesselect, masterdarkname, scale_drk) # for sci frames 
 
     if normalize:
         print ('***************************************************')
@@ -711,33 +875,83 @@ def basicred(redux_dir, DIR_DICT, basic = False, dividepf = False,
                 filename   = op.join ( f.origloc,        f.actionbase + f.basename + '.fits')
                 filename_e = op.join ( f.origloc, 'e.' + f.actionbase + f.basename + '.fits')
                 os.remove ( filename )
-                os.remove ( filename_e )
+                os.remove ( filename_e )           
 
-    # Run Deformer
+    # Run Master Deformer
     if run_deformer:
-        print ('*************************************************************************')
-        print ('* RUNNING DEFORMER TO BUILD DISTORTION SOLUTION AND WAVELENGTH SOLUTION *')
-        print ('*************************************************************************')
+        print ('********************************************************************************')
+        print ('* RUNNING DEFORMER TO BUILD MASTER DISTORTION SOLUTION AND WAVELENGTH SOLUTION *')
+        print ('********************************************************************************')
+        #check that basic has been run 
+        trace_files = glob.glob(op.join(redux_dir,'mastertrace*'))
+        arc_files   = glob.glob(op.join(redux_dir,'masterarc*'))
+        if len(trace_files) == 0 or len(arc_files) == 0:
+            sys.exit("You must run basic reduction before you can run deformer")
+
+        #Run deformer master to create the master distortion solution 
         shutil.copy ( lines_file, op.join(redux_dir,op.basename(lines_file)) )
         mastertrace = op.join ( redux_dir, 'mastertrace.fits' )
         masterarc   = op.join ( redux_dir, 'masterarc.fits' )
         linefile    = op.join ( redux_dir, op.basename(lines_file) )
-        deformer ( mastertrace, masterarc, linefile, spec_range, ref_line, file_binning, deformeropts)
-    
+        deformer_master ( mastertrace, masterarc, linefile, spec_range, ref_line, deformeropts)
+
+    if sort_sci:
+        print ('**************************************************')
+        print ('* SORTING SCIENCE FRAMES INTO OBJECT DIRECTORIES *')
+        print ('**************************************************')  
+        #iterate through science,standard, and sky frames and build folder for each   
+        for s in object_list:
+            os.mkdir ( op.join( redux_dir, sci_dir, s ))
+        #For each science frame copy it into correct object directory within science folder (along with error frame)
+        for s in sframes:
+            sname = op.join ( s.actionbase + s.basename + '.fits')
+            shutil.move (op.join(s.origloc, sname ), op.join( s.origloc, s.object ) )
+            shutil.move (op.join(s.origloc, 'e.'+sname ), op.join( s.origloc, s.object ) ) 
+
+    print ('**********************************')
+    print ('* BUILDING SCIENCE FRAME OBJECTS *')
+    print ('**********************************') 
+    #This builds a new VIRUS frame fro all science objects with updated path information
+    sorted_sframes = glob.glob( op.join( redux_dir, sci_dir, '*' , '*.fits' ) )
+    sciframes = []
+    for f in sorted_sframes:
+        #make sure not to include error frames in the list of image frames 
+        if op.basename(f)[0:2] != 'e.':
+            a = VirusFrame( f ) 
+            sciframes.append( copy.deepcopy( a ) )
+
+    orig_sci = [s for s in sciframes if s.basename[0:4] == 'pses'] #reduced science frames 
+
+    #Run deformer on science frames using master deformer solution 
+    if run_deformer:
+        print ('**************************************')
+        print ('* RUNNING DEFORMER ON SCIENCE FRAMES *')
+        print ('**************************************')
+        #Run deformer to create distortion solution for each of the science frames 
+        dist_master = op.join ( redux_dir, 'mastertrace.dist' )
+        fmod_master = op.join ( redux_dir, 'mastertrace.fmod' )
+        #iterate through all science objects and run deformer - must iterated so output files get saved in sorted sci directory structure
+        for o in object_list:
+            objectframeselect = [s for s in orig_sci if s.object == o]
+            outpath = op.join( redux_dir, sci_dir, o )
+            deformer ( orig_sci, dist_master, fmod_master, outpath, spec_range, ref_line, deformeropts )
+
     # Run sky subtraction            
     if subsky:  
         print ('************************************************')
         print ('* PERFORMING SKY SUBTRACTION ON SCIENCE FRAMES *')
         print ('************************************************')
-        distmodel = op.join ( redux_dir, 'mastertrace.dist' )
-        fibermodel = op.join ( redux_dir, 'mastertrace.fmod' )
+        #check that deformer has been run 
+        dist_files = glob.glob(op.join(redux_dir,'*.dist'))
+        if len(dist_files) == 0:
+            sys.exit("You must run deformer before you can run sky subtraction")
 
         print ('    ++++++++++++++++++++++++++++++')
         print ('     Sky Subtract Standard Frames ')
         print ('    ++++++++++++++++++++++++++++++')
-        sframesselect = [s for s in sframes if s.object in standard_frames]
+        sframesselect = [s for s in orig_sci if s.object in standard_frames]
         print ('Found '+str(len(sframesselect))+' Standard Frames')
-        subtractsky(sframesselect,distmodel,fibermodel,subskyopts)
+        subtractsky(sframesselect,subskyopts)
 
         print ('    ++++++++++++++++++++++++++++++')
         print ('     Sky Subtract Science Frames ')
@@ -747,45 +961,43 @@ def basicred(redux_dir, DIR_DICT, basic = False, dividepf = False,
         #if there are no sky frames it just does normal sky subtraction 
         if useskyframe == 0:
             print ('No sky frames found: Fibers in frame will be used for sky model')
-            sframesselect = [s for s in sframes if s.object in science_frames]
+            sframesselect = [s for s in orig_sci if s.object in science_frames]
             print ('Found '+str(len(sframesselect))+' Science Frames')
-            subtractsky(sframesselect,distmodel,fibermodel,subskyopts)
+            subtractsky(sframesselect,subskyopts)
         #if there are sky frames 
         else:
             print ('Sky frames will be used for sky model')
-            sky_ims = [s for s in sframes if s.object in sky_frames]
+            #list of sky frames 
+            sky_ims = [s for s in orig_sci if s.object in sky_frames]
+            #list of datetimes for each sky frame for comparison
             sky_times = [t.datetime for t in sky_ims]
-            sframesselect = [s for s in sframes if s.object in science_frames]
+            #list of science frames
+            sframesselect = [s for s in orig_sci if s.object in science_frames]
             print ('Found '+str(len(sframesselect))+' Science Frames')
+            #For each science frame: find the sky frame taken closest to the time of your observation
             for f in sframesselect:
                 sci_date = f.datetime
                 closest_index = min(range(len(sky_times)), key=lambda i: abs(sky_times[i]-sci_date))
                 skyframe = sky_ims[closest_index]
-                skyframe_name = redux_dir + '/' + sci_dir + '/pses' + skyframe.basename + '.fits'
-
-                skymaster = '-X '+skyframe_name+' -D '+distmodel+' -F '+fibermodel
-                subtractsky(sframesselect,distmodel,fibermodel,subskyopts,skymaster)
-
+                subtractsky_frame(f,skyframe,subskyopts)
 
     # Run fiberextract
     if fiberextract:  
         print ('****************************************')
         print ('* EXTRACTING SPECTRA IN SCIENCE FRAMES *')
         print ('****************************************')
+        #check that deformer has been run 
+        dist_files = glob.glob(op.join(redux_dir,'*.dist'))
+        if len(dist_files) == 0:
+            sys.exit("You must run deformer before you can run fiber extract")
 
-        #finds if there are sky subtracted files. If so it uses those.
-        Sfiles = glob.glob(redux_dir + "/" + sci_dir + "/Sp*.fits")
-        if len(Sfiles) == 0:
-            base = 'pses'
-        else:
-            base = 'Spses'
+        subsky_sci = glob.glob(redux_dir + "/" + sci_dir + "/*/" + "Spses*.fits")
+        if len(subsky_sci) == 0:
+            sci_objs = science_frames + standard_frames
+            sci_frames = [s for s in orig_sci if s.object in sci_objs]
+            subsky_sci = [(f.origloc + f.basename + '.fits') for f in sci_frames]
 
-        science_objects = science_frames + standard_frames
-        sframesselect = [s for s in sframes if s.object in science_objects]
-        print ('Found '+str(len(sframesselect))+' Science Frames for Fiber Extraction')
-
-        distmodel = redux_dir + "/mastertrace.dist"
-        fibermodel = redux_dir + "/mastertrace.fmod"
+        print ('Found '+str(len(subsky_sci))+' Science Frames for Fiber Extraction')
 
         if wl_resample:
             print ('    ++++++++++++++++++++++++++')
@@ -797,13 +1009,13 @@ def basicred(redux_dir, DIR_DICT, basic = False, dividepf = False,
             else:
                 nsample = 2048
 
-            fibextract_Resample(sframesselect,base,distmodel,fibermodel,spec_range,nsample,use_ap_corr,fibextractopts) 
+            fibextract_Resample(subsky_sci,spec_range,nsample,fibextractopts) 
         else:
             print ('    +++++++++++++++++++++++++++++++')
             print ('     Extraction Without Resampling ')
             print ('    +++++++++++++++++++++++++++++++')
 
-            fibextract(sframesselect,base,distmodel,fibermodel,use_ap_corr,fibextractopts)
+            fibextract(subsky_sci,fibextractopts)
 
     #CURE saves these files from deformer outside of the redux directory for some reason.
     #This moves them inside of the redux directory.
@@ -812,58 +1024,128 @@ def basicred(redux_dir, DIR_DICT, basic = False, dividepf = False,
         for l in left_files:
             os.rename(l, op.join(redux_dir,l))
 
+    #mkcube and collapse cube have NOT been edited to work 
+
     #Run mkcube
     if makecube:
         print ('***********************')
         print ('* BUILDING DATA CUBES *')
         print ('***********************')
-        location_prefix = redux_dir + "/" + sci_dir + "/" 
-        os.chdir(location_prefix)
+        fibext_sci = glob.glob(redux_dir + "/" + sci_dir + "/*/" + "Fe*.fits")
 
-        #builds a list of files to build a data cube 
-        #checks for if there are wavelength resampled fiber extracted and sky subtracted files
-        Fefiles = glob.glob("FeRS*_sci_*.fits")
-        #if not then checks for fiber extraced and sky subtracted files 
-        if len(Fefiles) == 0:
-            Fefiles = glob.glob("FeS*_sci_*.fits")
-        #if not checks for any type of fiber extracted files (resampled or not)
-        if len(Fefiles) == 0:
-            Fefiles = glob.glob("Fe*_sci_*.fits")
+        if len(fibext_sci) == 0:
+            sys.exit('You must run fiber extraction before you can build data cubes')
 
-        ditherfile = 'dither_vp.txt'
+        for s in science_frames:
+        #cd inside of the science directory 
+            location_prefix = redux_dir + "/" + sci_dir + "/" + s + "/"
+            os.chdir(location_prefix)
+            Fefiles  = [f for f in fibext_sci if f.object == s]
 
-        for f in Fefiles:
-            im  = pyfits.open(f)
-            hdr = im[0].header
-            #extracting header information for to know what channel file corresponds to and for dither file information 
-            airmass = hdr['AIRMASS']
+            ditherfile = 'dither_vp.txt'
 
+            for f in Fefiles:
+                airmass  = f.airmass
+                basename = f.basename[2:-1] #????
+                outname  = f.basename
+                psf      = 4.0
 
-            #fix becuase deformer won't run on blue channel but need both sides for mkcube 
-            if os.path.isfile(f[0:-7]+'_L.fits') == False:
-                shutil.copy(f,f[0:-7]+'_L.fits')
-                shutil.copy('e.'+f,'e.'+f[0:-7]+'_L.fits')
+                ditherf = open(ditherfile, 'w')
+                ditherinfo.writeHeader(ditherf)
+                ditherinfo.writeDither(ditherf,basename,"../mastertrace_"+str(uca),0.0,0.0,psf,1.00,airmass)
 
+                mkcube(IFUfile,ditherfile,outname,diffAtmRef,cubeopts)    
 
-            psf      = 1.5
-            basename = f[2:-7]
-            outname  = f[0:-5]
+            #cd back into the reduction directory 
+            os.chdir('../../../')
 
-            ditherf = open(ditherfile, 'w')
-            ditherinfo.writeHeader(ditherf)
-            ditherinfo.writeDither(ditherf,basename,"../mastertrace_"+str(uca),0.0,0.0,psf,1.00,airmass)
+    # Run collapse cube
+    if collapseCube:
+        print ('***************************************')
+        print ('* COLLAPSING DATA CUBE TO BUILD IMAGE *')
+        print ('***************************************')
 
-            mkcube(IFUfile,ditherfile,outname,cubeopts)  
+        cube_sci = glob.glob(redux_dir + "/" + sci_dir + "/*/" + "Cu*.fits")
 
-            #fix becuase deformer won't run on blue channel but need both sides for mkcube
-            if (uca == 501) and (side == 'R'):
-                 os.remove(f[0:-7]+'_L.fits') 
-                 os.remove('e.'+f[0:-7]+'_L.fits')  
+        for s in sci_objects:
+            #cd into the science directory 
+            location_prefix = redux_dir + "/" + sci_dir + "/" + s + "/" 
+
+            #makes sure there are actually data cubes made from wavelength resampled, fiber extracted data in the sci directory 
+            #If data cubes were made from fiber extracted fibers that do not wl resample they do not contain WCS info needed
+            if len(Cufiles) == 0:
+                sys.exit("You must build data cubes from wavelength resampled, fiber extracted data before running collapse cube")
+
+            #user defined wavelength range to collapse cube 
+            low_wave  = col_wave_range[0]
+            high_wave = col_wave_range[1]
+
+            #track number of cubes used in order to inform user if their values fall out of bounds and no images made
+            num_cubes = 0
+
+            min_wave_set = []
+            max_wave_set = []
+            #iterate through cube files 
+            for c in Cufiles:
+                im  = pyfits.open(c)
+                hdr = im[0].header
+                dat = im[0].data
+
+                #read header for wavelength solution information
+                lenZ  = np.shape(dat)[0]
+                CRVAL = hdr['CRVAL3']                                        
+                CDELT = hdr['CDELT3']
+                Side  = hdr['CCDPOS']
+
+                #build wavelength solution and find min and max wavelength of that solution
+                wave_sol = np.add(np.arange(0,(lenZ*CDELT)+1,CDELT),CRVAL)
+                max_wave = np.amax(wave_sol)
+                min_wave = np.amin(wave_sol)
+
+                #append the values for each frame to inform user of bounds of this data set if their values are out of bounds
+                max_wave_set.append(max_wave)
+                min_wave_set.append(min_wave)
+
+                #If they choose to collapse entire cube ([0,0]) all data cubes are collapsed into images
+                if low_wave == 0 and high_wave == 0:
+                    num_cubes = num_cubes + 1 
+                    print('Building image from '+spec_chan+' channel cube: '+op.basename(c))
+                    print('Collapsing entire cube')
+
+                    sum_image  = np.sum(dat, axis=0) #sums data cube in z direction
+                    pyfits.writeto( location_prefix+'Col'+op.basename(c), sum_image, header=hdr, clobber=True)
+                    print('\n')
+
+                #If the user choose a wavelength range check if it in range of this cube 
+                if (low_wave >= min_wave) and (high_wave <= max_wave):
+                    num_cubes = num_cubes + 1 
+                    print('Building image from cube: '+op.basename(c))
+                    print('Collapsing cube from '+str(low_wave)+' to '+str(high_wave))
+
+                    #find what index these wavelengths most closely correspond to. 
+                    low_ind  = (np.abs(wave_sol-low_wave)).argmin()
+                    high_ind = (np.abs(wave_sol-high_wave)).argmin()
+
+                    #find wavelength value at this index - not exactly users choice so want to print value
+                    low_val  = str(wave_sol[low_ind]).split('.')[0]
+                    high_val = str(wave_sol[high_ind]).split('.')[0]
+
+                    #Build image from that data cube 
+                    dat_region = dat[low_ind:high_ind,:,:] #build region from low to high z - include all x,y
+                    sum_image  = np.sum(dat_region, axis=0) #sum the image in the z direction
+                    pyfits.writeto( location_prefix+'Col_'+low_val+'_'+high_val+'_'+op.basename(c), sum_image, header=hdr, clobber=True)
+                    print('\n')
+
+            #if num_cubes is 0: all cubes out of wavelength range of users choice 
+            if num_cubes == 0:
+                print ("Wavelength range you choose for collapse cube is out of range")
+                sys.exit("This VIRUS-P data set ranges between "+str(np.amin(min_wave_set))+" and "+str(np.amax(max_wave_set))+" Angstroms")
+
 
     return vframes
     
 def main():
-    frames = basicred( redux_dir, DIR_DICT, basic = basic, dividepf = dividepf,
+    frames = basicred( redux_dir, DIR_DICT, basic = basic,
                       normalize = normalize, masterdark = masterdark, masterarc = masterarc, mastertrace = mastertrace )                 
     
 if __name__ == '__main__':
