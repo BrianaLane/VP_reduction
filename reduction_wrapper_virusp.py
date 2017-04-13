@@ -23,7 +23,41 @@ from os import environ
 import re
 import string
 import cosmics
-from virus_p_config import * 
+import argparse as ap
+import importlib
+#from virus_p_config import * 
+
+#############################
+# Define config file to use #
+#############################
+
+def parse_args(argv=None):
+    """Parse the command line arguments
+    Parameters
+    ----------
+    argv : list of string
+        arguments to parse; if ``None``, ``sys.argv`` is used
+    Returns
+    -------
+    Namespace
+        parsed arguments
+    """
+    description = "config_file"
+    parser = ap.ArgumentParser(description=description,
+                            formatter_class=ap.ArgumentDefaultsHelpFormatter)
+                        
+    parser.add_argument("-config", nargs='?', type=str, help='''config file. "path_to_config/lrs2_config.py"''', default="virus_p_config.py")
+
+    args = parser.parse_args(args=argv) 
+           
+    return args
+
+args = parse_args()
+
+config_file_name = args.config
+config_arg       = config_file_name.split(".")[0]
+
+config = importlib.import_module(config_arg, package=None)
 
 #################################
 # Defining which unit to reduce #
@@ -41,7 +75,7 @@ CUREBIN = None
 if not CUREBIN:
     CUREBIN = environ.get('CUREBIN')
 if not CUREBIN:
-    print("Please set CUREBIN as  environment variable or in the script")
+    print("Please set CUREBIN as reenvironment variable or in the script")
     sys.exit(1)
 
 #checking that LRS2 is defined in specconf.h 
@@ -61,8 +95,8 @@ else:
 
 #if basic reduction is run need to specify specific routines to run 
 # divide pixel flat and masterdark are not being used now
-if basic:
-    rmcosmics       = rmCosmics 
+if config.basic:
+    rmcosmics       = config.rmCosmics 
     normalize       = True 
     masterdark      = True
     masterarc       = True  
@@ -79,7 +113,7 @@ else:
 
 # This makes sure that the redux folder is only overwritten if the user chooses to run basic reduction
 # If you user only wants to run deformer, skysubtract, fiberextract, or mkcube it used the data in redux 
-if basic:
+if config.basic:
     all_copy = True
     RESTART_FROM_SCRATCH = True
 else:
@@ -96,10 +130,10 @@ headfitsopts    = "-m -k EXPTIME -v 1 -V"
 darkopts        = "--maxmem 1024 -s -t -m -k 2.8" 
 arcopts         = "--maxmem 1024 -s -t -m -k 2.8"
 traceopts       = "--maxmem 1024 -s -t -m -k 2.8"
-deformeropts    = "-F 0,2048 -p 8 -C 8 -I [1.8,0.12,0.0,2.0] -P [0.0,0.5,0.15,1.0] --debug --dump_psf_data"
-subskyopts      = "--output-both -w "+str(window_size)+" -k "+str(sky_kappa[0])+','+str(sky_kappa[1])+" -m "+str(smoothing)+" -T "+str(sn_thresh)
-fibextractopts  = "-P"
-cubeopts        = "-a "+str(sky_sampling)+" -k "+str(max_distance)+" -s "+str(cube_sigma)
+deformeropts    = "-F 0,2048 -p 8 -C 8 -I 1.8,0.12,0.0,2.0 -P 0.0,0.5,0.15,1.0 --fix-exp --debug --dump_psf_data"
+subskyopts      = "--output-both -w "+str(config.window_size)+" -k "+str(config.sky_kappa[0])+','+str(config.sky_kappa[1])+" -m "+str(config.smoothing)+" -T "+str(config.sn_thresh)
+fibextractopts  = ""
+cubeopts        = "-a "+str(config.airmass_lis)+" -k "+str(config.max_distance)+" -s "+str(config.cube_sigma)
 
 #########################
 # Defining data folders #
@@ -147,7 +181,7 @@ class VirusFrame:
             self.filename               = filename
             self.origloc                = op.dirname  ( self.filename )
             self.basename, temp1        = op.basename ( self.filename ).split('.')
-            self.clean                  = CLEAN_AFTER_DONE
+            self.clean                  = config.CLEAN_AFTER_DONE
 
             self.actionbase = ''  
             
@@ -196,7 +230,6 @@ class VirusFrame:
             self.actionbase = action + self.actionbase
 
 
-#Class for building dither file for CURE's mkcube
 class ditherinfo(object):
     @classmethod
     def writeHeader(cls, f):
@@ -209,7 +242,6 @@ class ditherinfo(object):
         """
         s = []
         s.append("# basename is the base file name of the data files.")
-        s.append("#          _{L,R}.fits is added for the left and right spectrographs")
         s.append("# modelbase is the base file name of the dist, fmod, pmode files corresponding to the data files")
         s.append("# $Id:$")
         s.append("#")
@@ -483,7 +515,7 @@ def rmcosmicfits(frames):
         im_RN = header['RDNOISE1']
 
         # Build the object :
-        c = cosmics.cosmicsimage(array, gain=im_gain, readnoise=im_RN, sigclip = 7.0, sigfrac = 0.3, objlim = 7.0)
+        c = cosmics.cosmicsimage(array, gain=im_gain, readnoise=im_RN, satlevel = 65535.0, sigclip = 7.0, sigfrac = 0.3, objlim = 7.0)
         # There are other options, check the manual...
 
         # Run the full artillery :
@@ -500,7 +532,7 @@ def deformer_master(mastertrace,masterarc,linesfile,wave_range,ref_line,opts):
 
     wave_range = str(wave_range[0])+','+str(wave_range[1])
     
-    command = 'deformer %s -s %s -W %s -o \"%s\" -l %s -a %s %s' % (opts,ref_line,wave_range,redux_dir,linesfile,masterarc,mastertrace)  
+    command = 'deformer %s -s %s -W %s -o \"%s\" -l %s -a %s %s' % (opts,ref_line,wave_range,config.redux_dir,linesfile,masterarc,mastertrace)  
 
     run_cure_command( command, 0 )
 
@@ -538,7 +570,7 @@ def subtractsky(frames,opts):
     return command
     
     
-def subtractsky_frame(frame,skyframe,opts):
+def subtractsky_frame(frame,skyframe,skyscale,opts):
 
     filename = op.join(frame.origloc, frame.basename + '.fits')
     distname = op.join(frame.origloc, frame.basename + '.dist')
@@ -550,21 +582,25 @@ def subtractsky_frame(frame,skyframe,opts):
 
     skyframeopts = '-X '+filesky+' -D '+distsky+' -F '+fmodsky
     
-    command = 'subtractsky %s -d %s -f %s %s' % (opts,distname,fmodname,skyframeopts,filename)  
+    command = 'subtractsky %s --x-sky-scaling %s %s -d %s -f %s %s' % (opts,skyscale,skyframeopts,distname,fmodname,filename)  
 
     run_cure_command( command, 0 )
 
     return command
     
-def fibextract_Resample(filenames,wave_range,nsample,opts):
+def fibextract_Resample(filenames,skysub_files,wave_range,nsample,opts):
 
     wave_range = str(wave_range[0])+','+str(wave_range[1])
 
     for f in filenames:
 
-        dist = op.dirname( f ) + op.basename( f ).split('.') + '.dist'
-        fmod = op.dirname( f ) + op.basename( f ).split('.') + '.fmod'
-    
+        if skysub_files:
+            dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][1::] + '.dist'
+            fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][1::]+ '.fmod'
+        else:
+            dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0] + '.dist'
+            fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0] + '.fmod'
+
         command = 'fiberextract %s -p FeR -W %s -n %s -d %s -f %s %s' %(opts,wave_range,nsample,dist,fmod,f)
         
         run_cure_command( command, 0 )
@@ -572,14 +608,14 @@ def fibextract_Resample(filenames,wave_range,nsample,opts):
     return command
 
 
-def fibextract(filenames,opts):
+def fibextract(filenames,skysub_files,opts):
 
     wave_range = str(wave_range[0])+','+str(wave_range[1])
 
     for f in filenames:
 
-        dist = op.dirname( f ) + op.basename( f ).split('.') + '.dist'
-        fmod = op.dirname( f ) + op.basename( f ).split('.') + '.fmod'
+        dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0] + '.dist'
+        fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0] + '.fmod'
     
         command = 'fiberextract %s -x -d %s -f %s %s' %(opts,dist,fmod,f)
         
@@ -612,16 +648,16 @@ def initial_setup (redux_dir = None, DIR_DICT = None):
     '''
 
     vframes = [] # will fill this list with VirusFrame class objects for each image
-    if redux_dir is None:
+    if config.redux_dir is None:
         print ( "Please provide a reduction directory \"redux_dir\"." )
         return None
     else:
-        if not op.exists ( redux_dir ):
-            os.mkdir ( redux_dir )
+        if not op.exists ( config.redux_dir ):
+            os.mkdir ( config.redux_dir )
         else:
             if RESTART_FROM_SCRATCH:
-                shutil.rmtree ( redux_dir )
-                os.mkdir ( redux_dir )
+                shutil.rmtree ( config.redux_dir )
+                os.mkdir ( config.redux_dir )
         
     if DIR_DICT is None:        
         print ( "Please provide a directory dictionary \"DIR_DICT\"." )
@@ -629,7 +665,7 @@ def initial_setup (redux_dir = None, DIR_DICT = None):
         return None
 
     #make a list of all of the raw files in the date directory 
-    filenames = glob.glob ( date_folder + "/*.fits" ) 
+    filenames = glob.glob ( config.date_folder + "/*.fits" ) 
 
     #iterate through the files and save the file type to a list
     file_typ_lis = []
@@ -644,8 +680,8 @@ def initial_setup (redux_dir = None, DIR_DICT = None):
     # Loop through the file location directories     
     for i in xrange ( len ( DIR_DICT ) ):
         # If the reduction location exists, don't re-make the directory (also, any files in that directory remain)
-        if not op.exists ( op.join ( redux_dir, DIR_DICT[i] ) ):
-            os.mkdir ( op.join ( redux_dir, DIR_DICT[i] ) )
+        if not op.exists ( op.join ( config.redux_dir, DIR_DICT[i] ) ):
+            os.mkdir ( op.join ( config.redux_dir, DIR_DICT[i] ) )
         #Loop through the files and find the ones that match the DIR_DICT data type
         typ_files = [f for f in filenames if file_typ_dict[f] == DIR_DICT[i]]  
 
@@ -654,9 +690,9 @@ def initial_setup (redux_dir = None, DIR_DICT = None):
         # The VirusFrame is critical for the rest of the reduction pipeline
         if all_copy:
             for t in typ_files:         
-                shutil.copy ( t, op.join ( redux_dir, DIR_DICT[i] ) )
+                shutil.copy ( t, op.join ( config.redux_dir, DIR_DICT[i] ) )
             for t in typ_files:        
-                a = VirusFrame( op.join( redux_dir, DIR_DICT[i], op.basename ( t ) ) ) 
+                a = VirusFrame( op.join( config.redux_dir, DIR_DICT[i], op.basename ( t ) ) ) 
                 vframes.append(copy.deepcopy(a))
         else:
             for t in typ_files:            
@@ -685,7 +721,7 @@ def basicred(redux_dir, DIR_DICT, basic = False,
     print ('* BUILDING IMAGE FRAMES *')
     print ('*************************')
 
-    vframes = initial_setup (redux_dir, DIR_DICT )
+    vframes = initial_setup (config.redux_dir, DIR_DICT )
     oframes = [v for v in vframes if v.type != "zero"] # gives "flt", "drk", "cmp", and "sci" frames (basically just not "zro")
     dframes = [v for v in vframes if v.type == "dark"] # gives dark frames
     cframes = [v for v in vframes if v.type == "flat" or v.type == "comp"] # gives "flt" and "cmp" frames
@@ -715,8 +751,8 @@ def basicred(redux_dir, DIR_DICT, basic = False,
     #If darks found and user choose subDarks: a masterdark is created and subtracted from science frames
     print ('Found '+str(len(dframes))+' dark frames')
     if len(dframes) != 0:
-        masterdark      = subDarks
-        subtractdark    = subDarks
+        masterdark      = config.subDarks
+        subtractdark    = config.subDarks
     else:
         masterdark      = False
         subtractdark    = False    
@@ -726,7 +762,7 @@ def basicred(redux_dir, DIR_DICT, basic = False,
     print ('Found '+str(len(sframes))+' science frames')
     sci_obj_names = [s.object for s in sframes]     #finds all science objects in data provided 
     sci_obj_names = list(set(sci_obj_names))    #compresses list so one of each object 
-    object_list = standard_frames + sky_frames + science_frames #combine all objects to iterate through
+    object_list = config.standard_frames + config.sky_frames + config.science_frames #combine all objects to iterate through
     for o in object_list:
         stframes = [s for s in sframes if s.object == o]
         if len(stframes) == 0:
@@ -751,11 +787,11 @@ def basicred(redux_dir, DIR_DICT, basic = False,
 
     #make a copy of the virus_p_config file to be added to your directory
     #if the file exists - remove the file and replace it.
-    if os.path.isfile(redux_dir+'/virus_p_config_'+redux_dir+'_copy.py') == True:
-        os.remove(redux_dir+'/virus_p_config_'+redux_dir+'_copy.py')
-        shutil.copy ( os.path.dirname(os.path.realpath(__file__))+'/virus_p_config.py', redux_dir+'/virus_p_config_'+redux_dir+'_copy.py' )
+    if os.path.isfile(config.redux_dir+'/virus_p_config_'+config.redux_dir+'_copy.py') == True:
+        os.remove(config.redux_dir+'/virus_p_config_'+config.redux_dir+'_copy.py')
+        shutil.copy ( os.path.dirname(os.path.realpath(__file__))+'/virus_p_config.py', config.redux_dir+'/virus_p_config_'+config.redux_dir+'_copy.py' )
     else:
-        shutil.copy ( os.path.dirname(os.path.realpath(__file__))+'/virus_p_config.py', redux_dir+'/virus_p_config_'+redux_dir+'_copy.py' )
+        shutil.copy ( os.path.dirname(os.path.realpath(__file__))+'/virus_p_config.py', config.redux_dir+'/virus_p_config_'+config.redux_dir+'_copy.py' )
 
 
     if basic:
@@ -786,8 +822,8 @@ def basicred(redux_dir, DIR_DICT, basic = False,
         print ('************************')
         print ('* BUILD MASTERBIAS FOR *')
         print ('************************')
-        meanframefits   ( redux_dir, 'masterbias', meanfitsopts, zframes ) # meanfits for masterbias
-        masterbiasname = op.join ( redux_dir, 'masterbias.fits' ) 
+        meanframefits   ( config.redux_dir, 'masterbias', meanfitsopts, zframes ) # meanfits for masterbias
+        masterbiasname = op.join ( config.redux_dir, 'masterbias.fits' ) 
         #oframesselect  = [o for o in oframes] 
         print ('***************************')
         print ('* SUBTRACT MASTERBIAS FOR *')
@@ -809,12 +845,12 @@ def basicred(redux_dir, DIR_DICT, basic = False,
         for e in sci_exptime:
             close_drk = min(drk_exptime, key=lambda x:abs(x-e))
             dframesselect = [d for d in dframes if d.exptime == close_drk] 
-            meandarkfits (redux_dir, 'masterdark_'+close_drk+'sec', meanfitsopts, dframesselect ) # meanfits for masterdark for unique specid
+            meandarkfits (config.redux_dir, 'masterdark_'+close_drk+'sec', meanfitsopts, dframesselect ) # meanfits for masterdark for unique specid
        
             #Subtracts Master Dark from Science Frames  
             scale_drk = e/close_drk
             sframesselect = [s for s in sframes if s.exptime == e] 
-            masterdarkname = op.join ( redux_dir, 'masterdark_'+close_drk+'sec' + '.fits' )
+            masterdarkname = op.join ( config.redux_dir, 'masterdark_'+close_drk+'sec' + '.fits' )
             subtractdark ( sframesselect, masterdarkname, scale_drk) # for sci frames 
 
     if normalize:
@@ -837,14 +873,14 @@ def basicred(redux_dir, DIR_DICT, basic = False,
         print ('**********************')
 
         if len(lframes)>1:
-            meanlampfits(redux_dir, 'masterarc' , arcopts, lframes) 
+            meanlampfits(config.redux_dir, 'masterarc' , arcopts, lframes) 
         else:
             print ('Only one arc image: copying to masterarc')
             filename = [op.join ( f.origloc, f.actionbase + f.basename +'.fits') for f in lframes]
-            mastername = op.join ( redux_dir , 'masterarc.fits')
+            mastername = op.join ( config.redux_dir , 'masterarc.fits')
             shutil.copy ( filename[0], mastername )
             efilename = [op.join ( f.origloc, 'e.' + f.actionbase + f.basename + '.fits') for f in lframes]
-            emastername = op.join ( redux_dir , 'e.masterarc.fits')
+            emastername = op.join ( config.redux_dir , 'e.masterarc.fits')
             shutil.copy ( efilename[0], emastername )
 
         for l in lframes:
@@ -860,14 +896,14 @@ def basicred(redux_dir, DIR_DICT, basic = False,
         print ('* BUILDING MASTERTRACE *')
         print ('************************')
         if len ( fframes ) > 1:
-            meanlampfits(redux_dir, 'mastertrace', traceopts, fframes)
+            meanlampfits(config.redux_dir, 'mastertrace', traceopts, fframes)
         else:
             print ('Only one flat image: copying to mastertrace')
             filename = [op.join ( f.origloc, f.actionbase + f.basename + '.fits') for f in fframes]
-            mastername = op.join ( redux_dir , 'mastertrace.fits')
+            mastername = op.join ( config.redux_dir , 'mastertrace.fits')
             shutil.copy ( filename[0], mastername )
             efilename = [op.join ( f.origloc, 'e.' + f.actionbase + f.basename + '.fits') for f in fframes]
-            emastername = op.join ( redux_dir , 'e.mastertrace.fits')
+            emastername = op.join ( config.redux_dir , 'e.mastertrace.fits')
             shutil.copy ( efilename[0], emastername )
 
         for f in fframes:
@@ -878,22 +914,22 @@ def basicred(redux_dir, DIR_DICT, basic = False,
                 os.remove ( filename_e )           
 
     # Run Master Deformer
-    if run_deformer:
+    if config.run_deformer:
         print ('********************************************************************************')
         print ('* RUNNING DEFORMER TO BUILD MASTER DISTORTION SOLUTION AND WAVELENGTH SOLUTION *')
         print ('********************************************************************************')
         #check that basic has been run 
-        trace_files = glob.glob(op.join(redux_dir,'mastertrace*'))
-        arc_files   = glob.glob(op.join(redux_dir,'masterarc*'))
+        trace_files = glob.glob(op.join(config.redux_dir,'mastertrace*'))
+        arc_files   = glob.glob(op.join(config.redux_dir,'masterarc*'))
         if len(trace_files) == 0 or len(arc_files) == 0:
             sys.exit("You must run basic reduction before you can run deformer")
 
         #Run deformer master to create the master distortion solution 
-        shutil.copy ( lines_file, op.join(redux_dir,op.basename(lines_file)) )
-        mastertrace = op.join ( redux_dir, 'mastertrace.fits' )
-        masterarc   = op.join ( redux_dir, 'masterarc.fits' )
-        linefile    = op.join ( redux_dir, op.basename(lines_file) )
-        deformer_master ( mastertrace, masterarc, linefile, spec_range, ref_line, deformeropts)
+        shutil.copy ( config.lines_file, op.join(config.redux_dir,op.basename(config.lines_file)) )
+        mastertrace = op.join ( config.redux_dir, 'mastertrace.fits' )
+        masterarc   = op.join ( config.redux_dir, 'masterarc.fits' )
+        linefile    = op.join ( config.redux_dir, op.basename(config.lines_file) )
+        deformer_master ( mastertrace, masterarc, linefile, config.spec_range, config.ref_line, deformeropts)
 
     if sort_sci:
         print ('**************************************************')
@@ -901,7 +937,7 @@ def basicred(redux_dir, DIR_DICT, basic = False,
         print ('**************************************************')  
         #iterate through science,standard, and sky frames and build folder for each   
         for s in object_list:
-            os.mkdir ( op.join( redux_dir, sci_dir, s ))
+            os.mkdir ( op.join( config.redux_dir, sci_dir, s ))
         #For each science frame copy it into correct object directory within science folder (along with error frame)
         for s in sframes:
             sname = op.join ( s.actionbase + s.basename + '.fits')
@@ -911,45 +947,45 @@ def basicred(redux_dir, DIR_DICT, basic = False,
     print ('**********************************')
     print ('* BUILDING SCIENCE FRAME OBJECTS *')
     print ('**********************************') 
-    #This builds a new VIRUS frame fro all science objects with updated path information
-    sorted_sframes = glob.glob( op.join( redux_dir, sci_dir, '*' , '*.fits' ) )
+    #This builds a new VIRUS frame for all science objects with updated path information
+    sorted_sframes = glob.glob( op.join( config.redux_dir, sci_dir, '*' , '*.fits' ) )
     sciframes = []
     for f in sorted_sframes:
         #make sure not to include error frames in the list of image frames 
-        if op.basename(f)[0:2] != 'e.':
+        if op.basename(f)[0:2] != 'e.' and op.basename(f)[0] != 'A':
             a = VirusFrame( f ) 
             sciframes.append( copy.deepcopy( a ) )
 
     orig_sci = [s for s in sciframes if s.basename[0:4] == 'pses'] #reduced science frames 
 
     #Run deformer on science frames using master deformer solution 
-    if run_deformer:
+    if config.run_deformer:
         print ('**************************************')
         print ('* RUNNING DEFORMER ON SCIENCE FRAMES *')
         print ('**************************************')
         #Run deformer to create distortion solution for each of the science frames 
-        dist_master = op.join ( redux_dir, 'mastertrace.dist' )
-        fmod_master = op.join ( redux_dir, 'mastertrace.fmod' )
+        dist_master = op.join ( config.redux_dir, 'mastertrace.dist' )
+        fmod_master = op.join ( config.redux_dir, 'mastertrace.fmod' )
         #iterate through all science objects and run deformer - must iterated so output files get saved in sorted sci directory structure
         for o in object_list:
             objectframeselect = [s for s in orig_sci if s.object == o]
-            outpath = op.join( redux_dir, sci_dir, o )
-            deformer ( orig_sci, dist_master, fmod_master, outpath, spec_range, ref_line, deformeropts )
+            outpath = op.join( config.redux_dir, sci_dir, o )
+            deformer ( objectframeselect, dist_master, fmod_master, outpath, config.spec_range, config.ref_line, deformeropts )
 
     # Run sky subtraction            
-    if subsky:  
+    if config.subsky:  
         print ('************************************************')
         print ('* PERFORMING SKY SUBTRACTION ON SCIENCE FRAMES *')
         print ('************************************************')
         #check that deformer has been run 
-        dist_files = glob.glob(op.join(redux_dir,'*.dist'))
+        dist_files = glob.glob(op.join(config.redux_dir,'*.dist'))
         if len(dist_files) == 0:
             sys.exit("You must run deformer before you can run sky subtraction")
 
         print ('    ++++++++++++++++++++++++++++++')
         print ('     Sky Subtract Standard Frames ')
         print ('    ++++++++++++++++++++++++++++++')
-        sframesselect = [s for s in orig_sci if s.object in standard_frames]
+        sframesselect = [s for s in orig_sci if s.object in config.standard_frames]
         print ('Found '+str(len(sframesselect))+' Standard Frames')
         subtractsky(sframesselect,subskyopts)
 
@@ -957,49 +993,56 @@ def basicred(redux_dir, DIR_DICT, basic = False,
         print ('     Sky Subtract Science Frames ')
         print ('    ++++++++++++++++++++++++++++++') 
         #This is will equal 0 if there are no sky frames 
-        useskyframe = len(sky_frames)
+        useskyframe = len(config.sky_frames)
         #if there are no sky frames it just does normal sky subtraction 
         if useskyframe == 0:
             print ('No sky frames found: Fibers in frame will be used for sky model')
-            sframesselect = [s for s in orig_sci if s.object in science_frames]
+            sframesselect = [s for s in orig_sci if s.object in config.science_frames]
             print ('Found '+str(len(sframesselect))+' Science Frames')
             subtractsky(sframesselect,subskyopts)
         #if there are sky frames 
         else:
             print ('Sky frames will be used for sky model')
             #list of sky frames 
-            sky_ims = [s for s in orig_sci if s.object in sky_frames]
+            sky_ims = [s for s in orig_sci if s.object in config.sky_frames]
             #list of datetimes for each sky frame for comparison
             sky_times = [t.datetime for t in sky_ims]
             #list of science frames
-            sframesselect = [s for s in orig_sci if s.object in science_frames]
+            sframesselect = [s for s in orig_sci if s.object in config.science_frames]
             print ('Found '+str(len(sframesselect))+' Science Frames')
             #For each science frame: find the sky frame taken closest to the time of your observation
             for f in sframesselect:
                 sci_date = f.datetime
                 closest_index = min(range(len(sky_times)), key=lambda i: abs(sky_times[i]-sci_date))
                 skyframe = sky_ims[closest_index]
-                subtractsky_frame(f,skyframe,subskyopts)
+                #define the scale factor to scale up sky exposure to to deal with different expsosure times between sky and sci frames
+                #scale factor for the sky frame is the sci exposure time divided by they sky frame exposure time
+                #this scales by exposure time and additionally by a factor the user chooses 
+                skyscale = float(f.exptime)/float(skyframe.exptime) * config.sky_scaling
+                subtractsky_frame(f,skyframe,skyscale,subskyopts)
 
     # Run fiberextract
-    if fiberextract:  
+    if config.fiberextract:  
         print ('****************************************')
         print ('* EXTRACTING SPECTRA IN SCIENCE FRAMES *')
         print ('****************************************')
         #check that deformer has been run 
-        dist_files = glob.glob(op.join(redux_dir,'*.dist'))
+        dist_files = glob.glob(op.join(config.redux_dir,'*.dist'))
         if len(dist_files) == 0:
             sys.exit("You must run deformer before you can run fiber extract")
 
-        subsky_sci = glob.glob(redux_dir + "/" + sci_dir + "/*/" + "Spses*.fits")
+        subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" + "Spses*.fits")
         if len(subsky_sci) == 0:
-            sci_objs = science_frames + standard_frames
+            skysub_files = False
+            sci_objs = config.science_frames + config.standard_frames
             sci_frames = [s for s in orig_sci if s.object in sci_objs]
-            subsky_sci = [(f.origloc + f.basename + '.fits') for f in sci_frames]
+            subsky_sci = [(f.origloc + '/' + f.basename + '.fits') for f in sci_frames]
+        else:
+            skysub_files = True
 
         print ('Found '+str(len(subsky_sci))+' Science Frames for Fiber Extraction')
 
-        if wl_resample:
+        if config.wl_resample:
             print ('    ++++++++++++++++++++++++++')
             print ('     Resampling in Wavelength ')
             print ('    ++++++++++++++++++++++++++')
@@ -1009,67 +1052,71 @@ def basicred(redux_dir, DIR_DICT, basic = False,
             else:
                 nsample = 2048
 
-            fibextract_Resample(subsky_sci,spec_range,nsample,fibextractopts) 
+            fibextract_Resample(subsky_sci,skysub_files, config.spec_range,nsample,fibextractopts) 
         else:
             print ('    +++++++++++++++++++++++++++++++')
             print ('     Extraction Without Resampling ')
             print ('    +++++++++++++++++++++++++++++++')
 
-            fibextract(subsky_sci,fibextractopts)
+            fibextract(subsky_sci, skysub_files, fibextractopts)
 
     #CURE saves these files from deformer outside of the redux directory for some reason.
     #This moves them inside of the redux directory.
     left_files = glob.glob('*.log') + glob.glob('*.residuals')
     if len(left_files) > 0:
         for l in left_files:
-            os.rename(l, op.join(redux_dir,l))
+            os.rename(l, op.join(config.redux_dir,l))
 
     #mkcube and collapse cube have NOT been edited to work 
 
     #Run mkcube
-    if makecube:
+    if config.makecube:
         print ('***********************')
         print ('* BUILDING DATA CUBES *')
         print ('***********************')
-        fibext_sci = glob.glob(redux_dir + "/" + sci_dir + "/*/" + "Fe*.fits")
 
-        if len(fibext_sci) == 0:
-            sys.exit('You must run fiber extraction before you can build data cubes')
-
-        for s in science_frames:
+        for s in config.science_frames:
         #cd inside of the science directory 
-            location_prefix = redux_dir + "/" + sci_dir + "/" + s + "/"
+            location_prefix = op.join(config.redux_dir, sci_dir, s)
             os.chdir(location_prefix)
-            Fefiles  = [f for f in fibext_sci if f.object == s]
+            Fefiles = glob.glob(op.join(config.redux_dir, sci_dir, s, "Fe*.fits"))
+
+            if len(Fefiles) == 0:
+                sys.exit('You must run fiber extraction before you can build data cubes')
 
             ditherfile = 'dither_vp.txt'
 
             for f in Fefiles:
+                #    ditherx = [0.0,0.0,0.0,-1.197]
+                #    dithery = [0.0,0.0,0.0,0.565]
+                #    psf     = [2.0,2.0,2.0,2.0]
+                #    norm    = [1.0,1.0,1.0,1.0]
+                #    airmass = [1.23,1.23,1.23,1.23]
                 airmass  = f.airmass
+                psf      = 4.0
                 basename = f.basename[2:-1] #????
                 outname  = f.basename
-                psf      = 4.0
 
                 ditherf = open(ditherfile, 'w')
                 ditherinfo.writeHeader(ditherf)
                 ditherinfo.writeDither(ditherf,basename,"../mastertrace_"+str(uca),0.0,0.0,psf,1.00,airmass)
 
-                mkcube(IFUfile,ditherfile,outname,diffAtmRef,cubeopts)    
+                mkcube(IFUfile,ditherfile,outname,config.diffAtmRef,cubeopts)    
 
             #cd back into the reduction directory 
             os.chdir('../../../')
 
     # Run collapse cube
-    if collapseCube:
+    if config.collapseCube:
         print ('***************************************')
         print ('* COLLAPSING DATA CUBE TO BUILD IMAGE *')
         print ('***************************************')
 
-        cube_sci = glob.glob(redux_dir + "/" + sci_dir + "/*/" + "Cu*.fits")
+        cube_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" + "Cu*.fits")
 
         for s in sci_objects:
             #cd into the science directory 
-            location_prefix = redux_dir + "/" + sci_dir + "/" + s + "/" 
+            location_prefix = config.redux_dir + "/" + sci_dir + "/" + s + "/" 
 
             #makes sure there are actually data cubes made from wavelength resampled, fiber extracted data in the sci directory 
             #If data cubes were made from fiber extracted fibers that do not wl resample they do not contain WCS info needed
@@ -1077,8 +1124,8 @@ def basicred(redux_dir, DIR_DICT, basic = False,
                 sys.exit("You must build data cubes from wavelength resampled, fiber extracted data before running collapse cube")
 
             #user defined wavelength range to collapse cube 
-            low_wave  = col_wave_range[0]
-            high_wave = col_wave_range[1]
+            low_wave  = config.col_wave_range[0]
+            high_wave = config.col_wave_range[1]
 
             #track number of cubes used in order to inform user if their values fall out of bounds and no images made
             num_cubes = 0
@@ -1145,7 +1192,7 @@ def basicred(redux_dir, DIR_DICT, basic = False,
     return vframes
     
 def main():
-    frames = basicred( redux_dir, DIR_DICT, basic = basic,
+    frames = basicred( config.redux_dir, DIR_DICT, basic = config.basic,
                       normalize = normalize, masterdark = masterdark, masterarc = masterarc, mastertrace = mastertrace )                 
     
 if __name__ == '__main__':
