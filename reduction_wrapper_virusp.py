@@ -789,9 +789,9 @@ def basicred(redux_dir, DIR_DICT, basic = False,
     #if the file exists - remove the file and replace it.
     if os.path.isfile(config.redux_dir+'/virus_p_config_'+config.redux_dir+'_copy.py') == True:
         os.remove(config.redux_dir+'/virus_p_config_'+config.redux_dir+'_copy.py')
-        shutil.copy ( os.path.dirname(os.path.realpath(__file__))+'/virus_p_config.py', config.redux_dir+'/virus_p_config_'+config.redux_dir+'_copy.py' )
+        shutil.copy ( os.path.dirname(os.path.realpath(__file__))+'/virus_p_config.py', config.redux_dir+'/virus_p_config_copy.py' )
     else:
-        shutil.copy ( os.path.dirname(os.path.realpath(__file__))+'/virus_p_config.py', config.redux_dir+'/virus_p_config_'+config.redux_dir+'_copy.py' )
+        shutil.copy ( os.path.dirname(os.path.realpath(__file__))+'/virus_p_config.py', config.redux_dir+'/virus_p_config_copy.py' )
 
 
     if basic:
