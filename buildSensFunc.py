@@ -481,8 +481,8 @@ if create_standSpec:
 
 		F[j] = lstsq(w,fiber_flux[:,j:j+1])[0]
 
-	save('fluxCalibSpec_'+str(name), F)
-	save('WavelengthSolu_'+str(name), wave)
+	np.save('fluxCalibSpec_'+str(name), F)
+	np.save('WavelengthSolu_'+str(name), wave)
 
 print 'Done with building ADR corrected spectrum [6][7][8][9]'
 
@@ -493,7 +493,7 @@ if create_sensFunc:
 	#-------------------------------------#
 
 	#load in standard spectrum as derived above 
-	stand_spec = load('fluxCalibSpec_'+str(name)+'.npy') #DN/A
+	stand_spec = np.load('fluxCalibSpec_'+str(name)+'.npy') #DN/A
 
 	#get the wavelength values for this spectrum 
 	wave_sol = float(h1['CDELT1']) #this is the wavelength per pixel
