@@ -19,8 +19,8 @@ create_standSpec = True
 create_sensFunc = True
 
 #Set all to None if you want to include the whole array
-x_srt = 15 	#default 0
-x_end = 900 #default 1024
+x_srt = 0 	#default 0
+x_end = 915 #default 1024
 y_srt = 0   #default 0
 y_end = 243 #default 245
 
@@ -30,7 +30,8 @@ wl_higher = 7200
 
 #set up path to your cure bin
 #extinc_McD.dat needs to be saved in the scripts directory in your CURE folder
-curebin_path  = '/Users/Briana/Documents/cure/virusp1/bin/'
+curebin_path  = '/Users/bindahl/Documents/cure/virusp1/bin'
+vp_redux_path = '/Users/bindahl/Documents/VIRUS_P/VP_reduction'
 
 #----------#
 # Get Data #
@@ -40,26 +41,26 @@ curebin_path  = '/Users/Briana/Documents/cure/virusp1/bin/'
 if id == 1:
 	name = 'Feige34'
 	#this should be the file in AB magnitudes
-	stdfile= '/Users/Briana/Documents/cure/virusp1/scripts/standard_stars/feige_34_oke.txt'
+	stdfile= vp_redux_path+'/standard_stars/feige_34_oke.txt'
 	#y value of pixel you think is the center of the star in central dither (4th dither?)
 	fib0=123
 	#define all the files to use and correspoinding error files
 elif id == 2:
 	name = 'Feige67'
 	#this should be the file in AB magnitudes
-	stdfile= '/Users/Briana/Documents/cure/virusp1/scripts/standard_stars/feige_67_oke.txt'
+	stdfile= vp_redux_path+'/standard_stars/feige_67_oke.txt'
 	#y value of pixel you think is the center of the star in central dither (4th dither?)
 	fib0=123
 elif id == 3:
 	name = 'GRW70d5824'
 	#this should be the file in AB magnitudes
-	stdfile= '/Users/Briana/Documents/cure/virusp1/scripts/standard_stars/grw70d5824_oke.txt'
+	stdfile= vp_redux_path+'/standard_stars/grw70d5824_oke.txt'
 	#y value of pixel you think is the center of the star in central dither (4th dither?)
 	fib0=150 # for mar17 #119 for apr16
 elif id == 4:
 	name = 'BD_75d325'
 	#this should be the file in AB magnitudes
-	stdfile= '/Users/Briana/Documents/cure/virusp1/scripts/standard_stars/bd75d325_oke.txt'
+	stdfile= vp_redux_path+'/standard_stars/bd75d325_oke.txt'
 	#y value of pixel you think is the center of the star in central dither (4th dither?)
 	fib0=137 #for feb17 #151 
 else: 
@@ -128,7 +129,7 @@ sflam=(c/(pow(sl,2)))*sfnu # flux density in ergs/s/cm2/A
 
 print '[2] EXTINCT STANDARD STAR FLUX FOR AIRMASS'
 
-elam, ecoeff = np.loadtxt(op.join(curebin_path,'../scripts/extinc_McD.dat'), usecols = (0,1), unpack=True)
+elam, ecoeff = np.loadtxt(op.join(vp_redux_path,'extinc_McD.dat'), usecols = (0,1), unpack=True)
 f = interpolate.interp1d(x=elam*10.0, y=ecoeff)
 ecoeffint = f(sl)
 sflam=sflam*(10.0**(-0.4*ecoeffint*airmass))
