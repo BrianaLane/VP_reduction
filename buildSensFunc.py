@@ -11,16 +11,17 @@ import os.path as op
 import sys
 import numpy.ma as ma
 
+#This should be run inside of the standard star folder (data/stand_star)
 
 #define ID to perform flux calibration on
-id = 3
-fiberextract = False
-create_standSpec = True
-create_sensFunc = True
+id = 4
+fiberextract = True
+create_standSpec = False
+create_sensFunc = False
 
 #define wavelength range (in angstroms)
-wl_lower = 4700
-wl_higher = 7200
+wl_lower  = 3500
+wl_higher = 5900
 
 #set up path to your cure bin
 #extinc_McD.dat needs to be saved in the scripts directory in your CURE folder
@@ -49,7 +50,13 @@ elif id == 3:
 	#this should be the file in AB magnitudes
 	stdfile= '/Users/Briana/Documents/cure/virusp1/scripts/standard_stars/grw70d5824_oke.txt'
 	#y value of pixel you think is the center of the star in central dither (4th dither?)
-	fib0=119
+	fib0=150 # for mar17 #119 for apr16
+elif id == 4:
+	name = 'BD_75d325'
+	#this should be the file in AB magnitudes
+	stdfile= '/Users/Briana/Documents/cure/virusp1/scripts/standard_stars/bd75d325_oke.txt'
+	#y value of pixel you think is the center of the star in central dither (4th dither?)
+	fib0=151
 else: 
 	sys.exti("ID does not exist")
 
