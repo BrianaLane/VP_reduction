@@ -1,4 +1,4 @@
-from numpy import *
+import numpy as np
 import string
 import matplotlib.pyplot as plt
 from scipy import interpolate
@@ -9,19 +9,24 @@ import numpy.ma as ma
 from pylab import *
 import os.path as op
 import sys
-import numpy.ma as ma
 
 #This should be run inside of the standard star folder (data/stand_star)
 
 #define ID to perform flux calibration on
 id = 4
-fiberextract = True
-create_standSpec = False
-create_sensFunc = False
+fiberextract = False
+create_standSpec = True
+create_sensFunc = True
+
+#Set all to None if you want to include the whole array
+x_srt = 15 	#default 0
+x_end = 900 #default 1024
+y_srt = 0   #default 0
+y_end = 243 #default 245
 
 #define wavelength range (in angstroms)
-wl_lower  = 3500
-wl_higher = 5900
+wl_lower  = 4700
+wl_higher = 7200
 
 #set up path to your cure bin
 #extinc_McD.dat needs to be saved in the scripts directory in your CURE folder
@@ -56,7 +61,7 @@ elif id == 4:
 	#this should be the file in AB magnitudes
 	stdfile= '/Users/Briana/Documents/cure/virusp1/scripts/standard_stars/bd75d325_oke.txt'
 	#y value of pixel you think is the center of the star in central dither (4th dither?)
-	fib0=151
+	fib0=137 #for feb17 #151 
 else: 
 	sys.exti("ID does not exist")
 
@@ -93,9 +98,9 @@ print 'Files found: '+str(filelis)
 #name of the dither file (should be the same for all objects)
 dith_file = 'dith.txt'
 
-shift_x, shift_y, see_lis, airmass_lis = loadtxt(dith_file, usecols = (4,5,6,8), unpack=True)
-seeing = average(see_lis) # seeing in Fiber Coordinate units, presumably arcseconds
-airmass = average(airmass_lis)
+shift_x, shift_y, see_lis, airmass_lis = np.loadtxt(dith_file, usecols = (4,5,6,8), unpack=True)
+seeing = np.average(see_lis) # seeing in Fiber Coordinate units, presumably arcseconds
+airmass = np.average(airmass_lis)
 
 print 'Seeing: '+str(seeing)+', Airmass: '+str(airmass)
 
@@ -106,7 +111,7 @@ print 'Seeing: '+str(seeing)+', Airmass: '+str(airmass)
 print '[1] GETTING STANDARD STAR DATA'
 
 #it is using the file that is in AB magnitudes
-sl1, sm1 = loadtxt(stdfile, usecols = (0,1), unpack=True)
+sl1, sm1 = np.loadtxt(stdfile, usecols = (0,1), unpack=True)
 
 #mask out values greater than 7000A and less than 3400A for the interpolate routine in airmass correction
 mask_wl = ma.masked_outside(sl1, 3400, 7000)
@@ -123,7 +128,7 @@ sflam=(c/(pow(sl,2)))*sfnu # flux density in ergs/s/cm2/A
 
 print '[2] EXTINCT STANDARD STAR FLUX FOR AIRMASS'
 
-elam, ecoeff = loadtxt(op.join(curebin_path,'../scripts/extinc_McD.dat'), usecols = (0,1), unpack=True)
+elam, ecoeff = np.loadtxt(op.join(curebin_path,'../scripts/extinc_McD.dat'), usecols = (0,1), unpack=True)
 f = interpolate.interp1d(x=elam*10.0, y=ecoeff)
 ecoeffint = f(sl)
 sflam=sflam*(10.0**(-0.4*ecoeffint*airmass))
@@ -175,27 +180,59 @@ d6 =  im6[0].data
 h6 = im6[0].header
 
 #check if it is red and if it is cut of the last few pixels because they contain nan values
-if wl_higher > 6000:
-	print 'Trimming Red data to get rid of Nans and Infs'
-	d1 = vstack((d1[0:244,0:900],zeros(900)))
-	d2 = vstack((d2[0:244,0:900],zeros(900)))
-	d3 = vstack((d3[0:244,0:900],zeros(900)))
-	d4 = vstack((d4[0:244,0:900],zeros(900)))
-	d5 = vstack((d5[0:244,0:900],zeros(900)))
-	d6 = vstack((d6[0:244,0:900],zeros(900)))
+# if wl_higher > 6000:
+# 	print 'Trimming Red data to get rid of Nans and Infs'
+# 	d1 = np.vstack((d1[0:244,0:900],np.zeros(900)))
+# 	d2 = np.vstack((d2[0:244,0:900],np.zeros(900)))
+# 	d3 = np.vstack((d3[0:244,0:900],np.zeros(900)))
+# 	d4 = np.vstack((d4[0:244,0:900],np.zeros(900)))
+# 	d5 = np.vstack((d5[0:244,0:900],np.zeros(900)))
+# 	d6 = np.vstack((d6[0:244,0:900],np.zeros(900)))
 
-di1 = count_nonzero(isnan(d1)) + count_nonzero(isinf(d1))
-di2 = count_nonzero(isnan(d2)) + count_nonzero(isinf(d2))
-di3 = count_nonzero(isnan(d3)) + count_nonzero(isinf(d3))
-di4 = count_nonzero(isnan(d4)) + count_nonzero(isinf(d4))
-di5 = count_nonzero(isnan(d5)) + count_nonzero(isinf(d5))
-di6 = count_nonzero(isnan(d6)) + count_nonzero(isinf(d6))
+extra_row = np.zeros(x_end - x_srt)
+
+if y_end == 245:
+	d1 = d1[y_srt:y_end,x_srt:x_end]
+	d2 = d2[y_srt:y_end,x_srt:x_end]
+	d3 = d3[y_srt:y_end,x_srt:x_end]
+	d4 = d4[y_srt:y_end,x_srt:x_end]
+	d5 = d5[y_srt:y_end,x_srt:x_end]
+	d6 = d6[y_srt:y_end,x_srt:x_end]
+elif y_end == 244:
+	d1 = np.vstack((d1[y_srt:y_end,x_srt:x_end],extra_row))
+	d2 = np.vstack((d2[y_srt:y_end,x_srt:x_end],extra_row))
+	d3 = np.vstack((d3[y_srt:y_end,x_srt:x_end],extra_row))
+	d4 = np.vstack((d4[y_srt:y_end,x_srt:x_end],extra_row))
+	d5 = np.vstack((d5[y_srt:y_end,x_srt:x_end],extra_row))
+	d6 = np.vstack((d6[y_srt:y_end,x_srt:x_end],extra_row))
+elif y_end == 243:
+	d1 = np.vstack((d1[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	d2 = np.vstack((d2[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	d3 = np.vstack((d3[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	d4 = np.vstack((d4[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	d5 = np.vstack((d5[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	d6 = np.vstack((d6[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+else:
+	sys.exit("Excluding too many fibers. This script not equipt to handel this")
+
+di1 = np.count_nonzero(np.isnan(d1)) + np.count_nonzero(np.isinf(d1))
+di2 = np.count_nonzero(np.isnan(d2)) + np.count_nonzero(np.isinf(d2))
+di3 = np.count_nonzero(np.isnan(d3)) + np.count_nonzero(np.isinf(d3))
+di4 = np.count_nonzero(np.isnan(d4)) + np.count_nonzero(np.isinf(d4))
+di5 = np.count_nonzero(np.isnan(d5)) + np.count_nonzero(np.isinf(d5))
+di6 = np.count_nonzero(np.isnan(d6)) + np.count_nonzero(np.isinf(d6))
 print 'Number of Invalids Found in dithers: '+str(di1)+', '+str(di2)+', '+str(di3)+', '+str(di4)+', '+str(di5)+', '+str(di6)
+
+tot_nonzeros = di1+di2+di3+di4+di5+di6
+if tot_nonzeros > 0:
+	sys.exit(str(tot_nonzeros)+" Nans or Infs found!")
 
 exptime = int(h1['EXPTIME'])
 
 #find length of one spectrum in a fiber
 ln = len(d1[0])
+
+print "LEN: "+str(ln)
 
 #--------------------------------#
 # READ COORDINATES OF EACH FIBER #
@@ -204,7 +241,7 @@ ln = len(d1[0])
 print '[5] READING IFU CEN FILE'
 
 #using the IFU mapping file to find the positons of the fibers for each dither
-fn, fx1, fy1 = loadtxt(op.join(curebin_path,'../config/IFUcen_vp2_27m.txt'), usecols = (0,1,2), skiprows=3, unpack=True)
+fn, fx1, fy1 = np.loadtxt(op.join(curebin_path,'../config/IFUcen_vp2_27m.txt'), usecols = (0,1,2), skiprows=3, unpack=True)
 fx2=fx1+shift_x[1]
 fy2=fy1+shift_y[1]   #Check that I changed the dither pattern correctly!
 fx3=fx2+shift_x[2]
@@ -261,29 +298,29 @@ if create_standSpec:
 	#This is finding where the position of the fiber is inside of the defined radius R0
 	#but The flux in those fibers also has to be greater than the defined threshold value above
 	#each sel array is an array of whether each value (fiber) is true or false
-	sel1=((sqrt(abs(pow(subtract(fx1,fx1[fib0]),2))+abs(pow(subtract(fy1,fy1[fib0]),2))) < R0 ) & (totflux1 > thresh))
-	sel2=((sqrt(abs(pow(subtract(fx2,fx1[fib0]),2))+abs(pow(subtract(fy2,fy1[fib0]),2))) < R0 ) & (totflux2 > thresh))
-	sel3=((sqrt(abs(pow(subtract(fx3,fx1[fib0]),2))+abs(pow(subtract(fy3,fy1[fib0]),2))) < R0 ) & (totflux3 > thresh))
-	sel4=((sqrt(abs(pow(subtract(fx4,fx1[fib0]),2))+abs(pow(subtract(fy4,fy1[fib0]),2))) < R0 ) & (totflux4 > thresh))
-	sel5=((sqrt(abs(pow(subtract(fx5,fx1[fib0]),2))+abs(pow(subtract(fy5,fy1[fib0]),2))) < R0 ) & (totflux5 > thresh))
-	sel6=((sqrt(abs(pow(subtract(fx6,fx1[fib0]),2))+abs(pow(subtract(fy6,fy1[fib0]),2))) < R0 ) & (totflux6 > thresh))
+	sel1=((np.sqrt(abs(pow(np.subtract(fx1,fx1[fib0]),2))+abs(pow(np.subtract(fy1,fy1[fib0]),2))) < R0 ) & (totflux1 > thresh))
+	sel2=((np.sqrt(abs(pow(np.subtract(fx2,fx1[fib0]),2))+abs(pow(np.subtract(fy2,fy1[fib0]),2))) < R0 ) & (totflux2 > thresh))
+	sel3=((np.sqrt(abs(pow(np.subtract(fx3,fx1[fib0]),2))+abs(pow(np.subtract(fy3,fy1[fib0]),2))) < R0 ) & (totflux3 > thresh))
+	sel4=((np.sqrt(abs(pow(np.subtract(fx4,fx1[fib0]),2))+abs(pow(np.subtract(fy4,fy1[fib0]),2))) < R0 ) & (totflux4 > thresh))
+	sel5=((np.sqrt(abs(pow(np.subtract(fx5,fx1[fib0]),2))+abs(pow(np.subtract(fy5,fy1[fib0]),2))) < R0 ) & (totflux5 > thresh))
+	sel6=((np.sqrt(abs(pow(np.subtract(fx6,fx1[fib0]),2))+abs(pow(np.subtract(fy6,fy1[fib0]),2))) < R0 ) & (totflux6 > thresh))
 
 	#center of mass x value
 	#an array[sel#] will return the values at the fibers that met the threshold criteria 
-	wx1=sum(multiply(fx1[sel1],totflux1[sel1]))
-	wx2=sum(multiply(fx2[sel2],totflux2[sel2]))
-	wx3=sum(multiply(fx3[sel3],totflux3[sel3]))
-	wx4=sum(multiply(fx4[sel4],totflux4[sel4]))
-	wx5=sum(multiply(fx5[sel5],totflux5[sel5]))
-	wx6=sum(multiply(fx6[sel6],totflux6[sel6]))
+	wx1=sum(np.multiply(fx1[sel1],totflux1[sel1]))
+	wx2=sum(np.multiply(fx2[sel2],totflux2[sel2]))
+	wx3=sum(np.multiply(fx3[sel3],totflux3[sel3]))
+	wx4=sum(np.multiply(fx4[sel4],totflux4[sel4]))
+	wx5=sum(np.multiply(fx5[sel5],totflux5[sel5]))
+	wx6=sum(np.multiply(fx6[sel6],totflux6[sel6]))
 
 	#center of mass x value
-	wy1=sum(multiply(fy1[sel1],totflux1[sel1])) 
-	wy2=sum(multiply(fy2[sel2],totflux2[sel2]))
-	wy3=sum(multiply(fy3[sel3],totflux3[sel3]))
-	wy4=sum(multiply(fy4[sel4],totflux4[sel4]))
-	wy5=sum(multiply(fy5[sel5],totflux5[sel5]))
-	wy6=sum(multiply(fy6[sel6],totflux6[sel6]))
+	wy1=sum(np.multiply(fy1[sel1],totflux1[sel1])) 
+	wy2=sum(np.multiply(fy2[sel2],totflux2[sel2]))
+	wy3=sum(np.multiply(fy3[sel3],totflux3[sel3]))
+	wy4=sum(np.multiply(fy4[sel4],totflux4[sel4]))
+	wy5=sum(np.multiply(fy5[sel5],totflux5[sel5]))
+	wy6=sum(np.multiply(fy6[sel6],totflux6[sel6]))
 
 	#flux weighted position, output is the positon of the centroid [sx,sy] of star
 	sx=sum([wx1,wx2,wx3,wx4,wx5,wx6])/sum([sum(totflux1[sel1]),sum(totflux2[sel2]),sum(totflux3[sel3]),sum(totflux4[sel4]),sum(totflux5[sel5]),sum(totflux6[sel6])])
@@ -305,21 +342,21 @@ if create_standSpec:
 	#this is the factor that you want to smooth it by. 
 	#will include +/- sfac pixels when calculating the center for that pixel (wavelength)
 	sfac = 10
-	szero = zeros((len(aux1),sfac))
+	szero = np.zeros((len(aux1),sfac))
 
 	#This is appending #sfac zeros to the begginning and end of each dither array so the loop can handle the edges 
-	aux_s1 = hstack((szero,aux1,szero))
-	aux_s2 = hstack((szero,aux2,szero))
-	aux_s3 = hstack((szero,aux3,szero))
-	aux_s4 = hstack((szero,aux4,szero))
-	aux_s5 = hstack((szero,aux5,szero))
-	aux_s6 = hstack((szero,aux6,szero))
+	aux_s1 = np.hstack((szero,aux1,szero))
+	aux_s2 = np.hstack((szero,aux2,szero))
+	aux_s3 = np.hstack((szero,aux3,szero))
+	aux_s4 = np.hstack((szero,aux4,szero))
+	aux_s5 = np.hstack((szero,aux5,szero))
+	aux_s6 = np.hstack((szero,aux6,szero))
 
 	#these will hold all of the x and y offsets and the thresholds for each wavelength. 
 	#the thresholds are just stored as a check if you want to look at statisics 
-	ADR_x = zeros(ln)
-	ADR_y = zeros(ln)
-	ADR_thresh = zeros(ln)
+	ADR_x = np.zeros(ln)
+	ADR_y = np.zeros(ln)
+	ADR_thresh = np.zeros(ln)
 
 
 	for i in range(ln):
@@ -336,35 +373,35 @@ if create_standSpec:
 		waveflux6 = sum(aux_s6[:,j-sfac:j+sfac+1],axis=1)
 
 		#define the threshold for saying there is enough flux for this to be a star fiber
-		thresh=5*median([waveflux1,waveflux2,waveflux3,waveflux4,waveflux5,waveflux6])
+		thresh=5*np.median([waveflux1,waveflux2,waveflux3,waveflux4,waveflux5,waveflux6])
 		ADR_thresh[i]=thresh
 
 		#This is finding where the position of the fiber is inside of the defined radius R0
 		#but The flux in those fibers also has to be greater than the defined threshold value above
 		#each sel array is an array of whether each value (fiber) is true or false
-		sel1=((sqrt(abs(pow(subtract(fx1,fx1[fib0]),2))+abs(pow(subtract(fy1,fy1[fib0]),2))) < R1 ) & (waveflux1 > thresh))
-		sel2=((sqrt(abs(pow(subtract(fx2,fx1[fib0]),2))+abs(pow(subtract(fy2,fy1[fib0]),2))) < R1 ) & (waveflux2 > thresh))
-		sel3=((sqrt(abs(pow(subtract(fx3,fx1[fib0]),2))+abs(pow(subtract(fy3,fy1[fib0]),2))) < R1 ) & (waveflux3 > thresh))
-		sel4=((sqrt(abs(pow(subtract(fx4,fx1[fib0]),2))+abs(pow(subtract(fy4,fy1[fib0]),2))) < R1 ) & (waveflux4 > thresh))
-		sel5=((sqrt(abs(pow(subtract(fx5,fx1[fib0]),2))+abs(pow(subtract(fy5,fy1[fib0]),2))) < R1 ) & (waveflux5 > thresh))
-		sel6=((sqrt(abs(pow(subtract(fx6,fx1[fib0]),2))+abs(pow(subtract(fy6,fy1[fib0]),2))) < R1 ) & (waveflux6 > thresh))
+		sel1=((np.sqrt(abs(pow(np.subtract(fx1,fx1[fib0]),2))+abs(pow(np.subtract(fy1,fy1[fib0]),2))) < R1 ) & (waveflux1 > thresh))
+		sel2=((np.sqrt(abs(pow(np.subtract(fx2,fx1[fib0]),2))+abs(pow(np.subtract(fy2,fy1[fib0]),2))) < R1 ) & (waveflux2 > thresh))
+		sel3=((np.sqrt(abs(pow(np.subtract(fx3,fx1[fib0]),2))+abs(pow(np.subtract(fy3,fy1[fib0]),2))) < R1 ) & (waveflux3 > thresh))
+		sel4=((np.sqrt(abs(pow(np.subtract(fx4,fx1[fib0]),2))+abs(pow(np.subtract(fy4,fy1[fib0]),2))) < R1 ) & (waveflux4 > thresh))
+		sel5=((np.sqrt(abs(pow(np.subtract(fx5,fx1[fib0]),2))+abs(pow(np.subtract(fy5,fy1[fib0]),2))) < R1 ) & (waveflux5 > thresh))
+		sel6=((np.sqrt(abs(pow(np.subtract(fx6,fx1[fib0]),2))+abs(pow(np.subtract(fy6,fy1[fib0]),2))) < R1 ) & (waveflux6 > thresh))
 
 		#center of mass x value
 		#an array[sel#] will return the values at the fibers that met the threshold criteria 
-		wx1=sum(multiply(fx1[sel1],waveflux1[sel1]))
-		wx2=sum(multiply(fx2[sel2],waveflux2[sel2]))
-		wx3=sum(multiply(fx3[sel3],waveflux3[sel3]))
-		wx4=sum(multiply(fx4[sel4],waveflux4[sel4]))
-		wx5=sum(multiply(fx5[sel5],waveflux5[sel5]))
-		wx6=sum(multiply(fx6[sel6],waveflux6[sel6]))
+		wx1=sum(np.multiply(fx1[sel1],waveflux1[sel1]))
+		wx2=sum(np.multiply(fx2[sel2],waveflux2[sel2]))
+		wx3=sum(np.multiply(fx3[sel3],waveflux3[sel3]))
+		wx4=sum(np.multiply(fx4[sel4],waveflux4[sel4]))
+		wx5=sum(np.multiply(fx5[sel5],waveflux5[sel5]))
+		wx6=sum(np.multiply(fx6[sel6],waveflux6[sel6]))
 
 		#center of mass x value
-		wy1=sum(multiply(fy1[sel1],waveflux1[sel1])) 
-		wy2=sum(multiply(fy2[sel2],waveflux2[sel2]))
-		wy3=sum(multiply(fy3[sel3],waveflux3[sel3]))
-		wy4=sum(multiply(fy4[sel4],waveflux4[sel4]))
-		wy5=sum(multiply(fy5[sel5],waveflux5[sel5]))
-		wy6=sum(multiply(fy6[sel6],waveflux6[sel6]))
+		wy1=sum(np.multiply(fy1[sel1],waveflux1[sel1])) 
+		wy2=sum(np.multiply(fy2[sel2],waveflux2[sel2]))
+		wy3=sum(np.multiply(fy3[sel3],waveflux3[sel3]))
+		wy4=sum(np.multiply(fy4[sel4],waveflux4[sel4]))
+		wy5=sum(np.multiply(fy5[sel5],waveflux5[sel5]))
+		wy6=sum(np.multiply(fy6[sel6],waveflux6[sel6]))
 
 		#flux weighted position, output is the positon of the centroid [sx,sy] of star
 		sx=sum([wx1,wx2,wx3,wx4,wx5,wx6])/sum([sum(waveflux1[sel1]),sum(waveflux2[sel2]),sum(waveflux3[sel3]),sum(waveflux4[sel4]),sum(waveflux5[sel5]),sum(waveflux6[sel6])])
@@ -376,12 +413,12 @@ if create_standSpec:
 	#ADR x and y give you how the centroid of the star shift with wavelength
 	#normalize the centriod values by the first value to get a general posisitonal shift as a function of wavelength
 	#ADR x and y give you how the centroid of the star shift with wavelength
-	print 'Avg ADR X: '+str(average(ADR_x))+'  Stddev: '+str(std(ADR_x))
-	print 'Avg ADR Y: '+str(average(ADR_y))+'  Stddev: '+str(std(ADR_y))
+	print 'Avg ADR X: '+str(np.average(ADR_x))+'  Stddev: '+str(np.std(ADR_x))
+	print 'Avg ADR Y: '+str(np.average(ADR_y))+'  Stddev: '+str(np.std(ADR_y))
 
 	#normalize the centriod values by the first value to get a general posisitonal shift as a function of wavelength
-	ADR_x_norm = subtract(ADR_x, ADR_x[0])
-	ADR_y_norm = subtract(ADR_y, ADR_y[0])
+	ADR_x_norm = np.subtract(ADR_x, ADR_x[0])
+	ADR_y_norm = np.subtract(ADR_y, ADR_y[0])
 
 	#plot the shift in the centriod as a function of wavelength 
 	fig = plt.figure()
@@ -412,15 +449,16 @@ if create_standSpec:
 	Npts    = 1e5 # should be enough points
 	tot_fibs = num_fibs*len(filelis) #total number of fibers = number of fibers times number of dithers
 
-	fiber_x = hstack((fx1,fx1,fx2,fx4,fx5,fx6)) # list of fiber x postions from all dithers
-	fiber_y = hstack((fy1,fy1,fy2,fy4,fy5,fy6)) # list of fiber y postions from all dithers
+	fiber_x = np.hstack((fx1,fx1,fx2,fx4,fx5,fx6)) # list of fiber x postions from all dithers
+	fiber_y = np.hstack((fy1,fy1,fy2,fy4,fy5,fy6)) # list of fiber y postions from all dithers
 
 	wave_sol = float(h1['CDELT1']) #this is the wavelength per pixel
 	start_wave = float(h1['CRVAL1']) #this is the starting wavelength value
 
-	wave = add(arange(wave_sol,(wave_sol*ln)+wave_sol,wave_sol),start_wave)  # wavelength solution for each of the fibers (should be same across the board)
-	fiber_flux   = vstack((aux1,aux2,aux3,aux4,aux5,aux6)) # This is where all of the fiber fluxes are kept ()
-	F            = zeros((len(wave),)) # least squares method
+	wave = np.add(np.arange(wave_sol,(wave_sol*ln)+(0.5*wave_sol),wave_sol),start_wave)  # wavelength solution for each of the fibers (should be same across the board)
+
+	fiber_flux   = np.vstack((aux1,aux2,aux3,aux4,aux5,aux6)) # This is where all of the fiber fluxes are kept ()
+	F            = np.zeros((len(wave),)) # least squares method
 
 	for j in range(len(wave)):
 
@@ -430,15 +468,15 @@ if create_standSpec:
 		P = multivariate_normal([ADR_x[j],ADR_y[j]],seeing * np.eye(2),(Npts,))
 		#scatter(P[:,0],P[:,1],s=5,alpha=0.02,edgecolor='none')
 
-		w = zeros((tot_fibs,1)) # weight for each fiber
+		w = np.zeros((tot_fibs,1)) # weight for each fiber
 
 		for i in xrange(tot_fibs):
 			#finding the difference in position from the fiber center to each of the points in the star gaussian model
 			sel  = ((fiber_x[i] - P[:,0])**2 + (fiber_y[i] - P[:,1])**2) < fib_radius**2
-			w[i] = divide(sum(sel), Npts) 
+			w[i] = np.divide(sum(sel), Npts) 
 
 		total_weight = sum(w)
-		total_flux   = divide(sum(fiber_flux,axis=0),total_weight) # Gary's method
+		total_flux   = np.divide(sum(fiber_flux,axis=0),total_weight) # Gary's method
 
 		F[j] = lstsq(w,fiber_flux[:,j:j+1])[0]
 
@@ -460,12 +498,12 @@ if create_sensFunc:
 	wave_sol = float(h1['CDELT1']) #this is the wavelength per pixel
 	start_wave = float(h1['CRVAL1']) #this is the starting wavelength value
 
-	#divide by exposure time to get per second
-	stand_spec_perpix = divide(stand_spec,exptime) #DN/s/pixel
+	#np.divide by exposure time to get per second
+	stand_spec_perpix = np.divide(stand_spec,exptime) #DN/s/pixel
 	#convert standard spectrum to be per anstrom so it is invariant
-	stand_spec = divide(stand_spec_perpix,wave_sol) #DN/s/A
+	stand_spec = np.divide(stand_spec_perpix,wave_sol) #DN/s/A
 
-	wave = add(arange(wave_sol,(wave_sol*ln)+wave_sol,wave_sol),start_wave)
+	wave = np.add(np.arange(wave_sol,(wave_sol*ln)+(0.5*wave_sol),wave_sol),start_wave)
 
 	#-------------------------------#
 	# CALCULATE SENISIVITY FUNCTION #
@@ -481,12 +519,12 @@ if create_sensFunc:
 	stand_spec_sm = signal.medfilt(stand_spec, kernel_size=101)
 	sflamint_sm = signal.medfilt(sflamint, kernel_size=101)
 
-	#divide to get the sensitivity funciton 
-	sens_func = divide(stand_spec, sflamint) #DN*cm^2 / erg
-	sens_func_sm = divide(stand_spec_sm, sflamint_sm) #smoothed version 
+	#np.divide to get the sensitivity funciton 
+	sens_func = np.divide(stand_spec, sflamint) #DN*cm^2 / erg
+	sens_func_sm = np.divide(stand_spec_sm, sflamint_sm) #smoothed version 
 	
-	save('SensitivityFunc_'+str(name), sens_func_sm)
-	save('WavelengthSolu_'+str(name), wave)
+	np.save('SensitivityFunc_'+str(name), sens_func_sm)
+	np.save('WavelengthSolu_'+str(name), wave)
 
 	#------------#
 	# PLOT STUFF #
@@ -502,7 +540,7 @@ if create_sensFunc:
 	plt.subplot(3,1,2)
 	plt.plot(wave, sflamint, color = 'red', label='Known Spec')
 	plt.plot(wave, sflamint_sm, color = 'purple', label='Known Sm')
-	plt.plot(wave, divide(stand_spec_sm,sens_func_sm), color = 'green', label='recovery')
+	plt.plot(wave, np.divide(stand_spec_sm,sens_func_sm), color = 'green', label='recovery')
 	plt.title('Oke Spectrum')
 	plt.ylabel('Flux (ergs/s/cm^2/A)')
 	#plt.legend()
