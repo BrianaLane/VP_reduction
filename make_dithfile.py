@@ -7,6 +7,7 @@ import shutil
 import os.path as op
 import os
 import warnings
+import sys
 
 #This script should be run inside the folder of the science object you are working on
 #You should have already run match_guiderFrames.py and this folder should contain sci_im_list.lis
@@ -19,11 +20,11 @@ import warnings
 
 #define the field youa are working on. 
 #the script will use the guide start coordinates defined for that field
-field = 'GRW70d5824'
+field = 'F4'
 
 #This path should point to the location of both files:
-#	runsex.in, dith.lis
-script_path = '/Users/Briana/Documents/cure/virusp1/scripts'
+#	runsex.in, dith_vp2_subdither.lis
+script_path = '/Users/Briana/Documents/Grad_School/VIRUS_P/VP_reduction'
 
 #the number (starting from zero) of the column for flux in .cat files
 flux_num = 1
@@ -48,11 +49,41 @@ elif field == 'GRW70d5824':
 	y1 = 325 #min
 	y2 = 355 #max
 
+elif field == 'BD_75D325':
+	x1 = 365 #min
+	x2 = 405 #max
+	y1 = 265 #min
+	y2 = 305 #max
+
 elif field == 'Fa':
 	x1 = 295 #min
 	x2 = 335 #max
 	y1 = 380 #min
 	y2 = 420 #max
+
+elif field == 'Fb': 
+	x1 = 410 #min
+	x2 = 470 #max
+	y1 = 190 #min
+	y2 = 250 #max
+
+elif field == 'Fc':
+	x1 = 20 #min
+	x2 = 65 #max
+	y1 = 230 #min
+	y2 = 280 #max
+
+elif field == 'Fi':
+	x1 = 100 #min
+	x2 = 150 #max
+	y1 = 380 #min
+	y2 = 430 #max
+
+elif field == 'F4':
+	x1 = 100 #min
+	x2 = 170 #max
+	y1 = 265 #min
+	y2 = 330 #max
 
 elif field == 'F7':
 	x1 = 330 #min
@@ -61,10 +92,10 @@ elif field == 'F7':
 	y2 = 250 #max
 
 elif field == 'F8':
-	x1 = 90 #min
-	x2 = 125 #max
+	x1 = 80 #min
+	x2 = 130 #max
 	y1 = 300 #min
-	y2 = 330 #max
+	y2 = 340 #max
 
 elif field == 'F9':
 	x1 = 300 #min
@@ -101,6 +132,12 @@ elif field == 'F14':
 	x2 = 470 #max
 	y1 = 230 #min
 	y2 = 270 #max
+
+elif field == 'F15':
+	x1 = 170 #min
+	x2 = 250 #max
+	y1 = 95 #min
+	y2 = 170 #max
 
 #********************************#
 # Building the guide star frames #
@@ -227,6 +264,7 @@ normflux_avg_lis = np.divide(flux_avg_lis,max_flux)
 x, y = np.loadtxt(op.join(script_path,'dith_vp2_subdither.lis'), usecols = (0,1), unpack=True)
 
 f1 = open('dith.txt','w')
+f2 = open('dith2.txt','w')
 
 for s in range(len(sci_im_list)):
 	sci = string.split(sci_im_list[s],'/')[-1]
@@ -246,8 +284,10 @@ for s in range(len(sci_im_list)):
 	air  = float(airm_avg_lis[s])
 
 	f1.write(str(files)+'	'+str(pmod)+'	'+str(dist)+'	'+str(fmod)+'	'+str(x1)+'	'+str(y1)+'	'+str(see)+'	'+str(norm)+'	'+str(air)+'\n') 
+	f2.write(str('S'+str(prefix))+'	'+str(prefix)+'	'+str(x1)+'	'+str(y1)+'	'+str(see)+'	'+str(norm)+'	'+str(air)+'\n') 
 
 f1.close()
+f2.close()
 
 print('your dither.txt file has been created')
 print('BOOM')
