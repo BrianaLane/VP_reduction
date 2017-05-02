@@ -12,68 +12,143 @@ import sys
 
 #This should be run inside of the standard star folder (data/stand_star)
 
+#************************#
+# User Defined Variables #
+#************************#
+
 #define ID to perform flux calibration on
 id = 4
 fiberextract = False
 create_standSpec = True
 create_sensFunc = True
 
-#Set all to None if you want to include the whole array
-x_srt = 0 	#default 0
-x_end = 915 #default 1024
-y_srt = 0   #default 0
-y_end = 243 #default 245
+#Set to None if you do not want to trim
+Trim_setting = 'feb17'
 
 #define wavelength range (in angstroms)
-wl_lower  = 4700
-wl_higher = 7200
+#wl_lower  = 4700
+#wl_higher = 7200
+wl_lower  = 3500
+wl_higher = 5900
 
 #set up path to your cure bin
 #extinc_McD.dat needs to be saved in the scripts directory in your CURE folder
 curebin_path  = '/Users/bindahl/Documents/cure/virusp1/bin'
-vp_redux_path = '/Users/bindahl/Documents/VIRUS_P/VP_reduction'
+vp_redux_path = '/Users/Briana/Documents/Grad_School/VIRUS_P/VP_reduction'
 
-#----------#
-# Get Data #
-#----------#
+#Data name prefix
+prefix = 'vp'
+
+#--------------------------------------#
+# User defined standard star variables #
+#--------------------------------------#
 
 #define all the files to use and correspoinding error files
 if id == 1:
 	name = 'Feige34'
 	#this should be the file in AB magnitudes
-	stdfile= vp_redux_path+'/standard_stars/feige_34_oke.txt'
+	stdfile= 'feige_34_oke.txt'
 	#y value of pixel you think is the center of the star in central dither (4th dither?)
 	fib0=123
 	#define all the files to use and correspoinding error files
 elif id == 2:
 	name = 'Feige67'
 	#this should be the file in AB magnitudes
-	stdfile= vp_redux_path+'/standard_stars/feige_67_oke.txt'
+	stdfile= 'feige_67_oke.txt'
 	#y value of pixel you think is the center of the star in central dither (4th dither?)
 	fib0=123
 elif id == 3:
 	name = 'GRW70d5824'
 	#this should be the file in AB magnitudes
-	stdfile= vp_redux_path+'/standard_stars/grw70d5824_oke.txt'
+	stdfile= 'grw70d5824_oke.txt'
 	#y value of pixel you think is the center of the star in central dither (4th dither?)
-	fib0=150 # for mar17 #119 for apr16
+	fib0=119 #for apr16 #150 for mar17
 elif id == 4:
 	name = 'BD_75d325'
 	#this should be the file in AB magnitudes
-	stdfile= vp_redux_path+'/standard_stars/bd75d325_oke.txt'
+	stdfile= 'bd75d325_oke.txt'
 	#y value of pixel you think is the center of the star in central dither (4th dither?)
 	fib0=137 #for feb17 #151 
 else: 
 	sys.exti("ID does not exist")
 
+#-------------------------#
+# User defined trim image #
+#-------------------------#
+
+if Trim_setting == 'mar17_31':
+	x_srt = 0 	#default 0
+	x_end = 980 #default 1024
+	y_srt = 0   #default 0
+	y_end = 245 #default 245
+elif Trim_setting == 'mar17_30':
+	x_srt = 15 	#default 0
+	x_end = 900 #default 1024
+	y_srt = 0   #default 0
+	y_end = 243 #default 245
+elif Trim_setting == 'feb17':
+	x_srt = 0 	#default 0
+	x_end = 985 #default 1024
+	y_srt = 0   #default 0
+	y_end = 245 #default 245
+elif Trim_setting == 'apr16_03':
+	x_srt = 0 	#default 0
+	x_end = 1024 #default 1024
+	y_srt = 0   #default 0
+	y_end = 245 #default 245
+elif Trim_setting == 'apr16_04':
+	x_srt = 0 	#default 0
+	x_end = 920 #default 1024
+	y_srt = 0   #default 0
+	y_end = 244 #default 245
+elif Trim_setting == 'apr16_05':
+	x_srt = 0 	#default 0
+	x_end = 1024 #default 1024
+	y_srt = 0   #default 0
+	y_end = 244 #default 245
+elif Trim_setting == 'apr16_06':
+	x_srt = 0 	#default 0
+	x_end = 913 #default 1024
+	y_srt = 0   #default 0
+	y_end = 244 #default 245
+elif Trim_setting == 'apr16_07':
+	x_srt = 0 	#default 0
+	x_end = 912 #default 1024
+	y_srt = 0   #default 0
+	y_end = 244 #default 245
+elif Trim_setting == 'mar16_red':
+	x_srt = 25 	#default 0
+	x_end = 915 #default 1024
+	y_srt = 0   #default 0
+	y_end = 245 #default 245
+elif Trim_setting == 'mar16_blue':
+	x_srt = 35 	#default 0
+	x_end = 980 #default 1024
+	y_srt = 0   #default 0
+	y_end = 245 #default 245
+elif Trim_setting == 'apr15_red':
+	x_srt = 14 	#default 0
+	x_end = 850 #default 1024
+	y_srt = 0   #default 0
+	y_end = 245 #default 245
+elif Trim_setting == 'apr15_blue':
+	x_srt = 35 	#default 0
+	x_end = 1024 #default 1024
+	y_srt = 0   #default 0
+	y_end = 245 #default 245
+else:
+	print 'No trim setting applied'
+	x_srt = 0 	#default 0
+	x_end = 1024 #default 1024
+	y_srt = 0   #default 0
+	y_end = 245 #default 245
+
+#+++++++++++++++++++ end user defined variables +++++++++++++++++++++#
+
 #--------------------#
 # STANDARD VARIABLES #
 #--------------------#
 
-fileprefix = 'Spesvp'
-DMprefix = 'pesvp'
-
-num_fibs = 245 #246 but one not being found in trace for some reason
 R0=float64(15) # radius in arcsec arround fiber0 to calculate barycenter
 R1=float64(20) # radius in arcsec arround fiber0 to calculate barycenter
 RF=8 # radius in arcsec to use for PSF modeling
@@ -112,7 +187,7 @@ print 'Seeing: '+str(seeing)+', Airmass: '+str(airmass)
 print '[1] GETTING STANDARD STAR DATA'
 
 #it is using the file that is in AB magnitudes
-sl1, sm1 = np.loadtxt(stdfile, usecols = (0,1), unpack=True)
+sl1, sm1 = np.loadtxt(op.join(vp_redux_path,'standard_stars',stdfile), usecols = (0,1), unpack=True)
 
 #mask out values greater than 7000A and less than 3400A for the interpolate routine in airmass correction
 mask_wl = ma.masked_outside(sl1, 3400, 7000)
@@ -144,7 +219,7 @@ sflam=sflam*(10.0**(-0.4*ecoeffint*airmass))
 if fiberextract == True:
 	print '[3] PERFORMING FIBER EXTRACTION'
 	for i in range(len(filelis)):
-		bash_com = op.join(curebin_path,'fiberextract -d '+str(DMprefix)+str(filelis[i])+'.dist -f '+str(DMprefix)+str(filelis[i])+'.fmod -c -r 1,246 -l ['+str(wl_lower)+','+str(wl_higher)+'] '+str(fileprefix)+str(filelis[i])+'.fits')
+		bash_com = op.join(curebin_path,'fiberextract -d pes'+str(prefix)+str(filelis[i])+'.dist -f pes'+str(prefix)+str(filelis[i])+'.fmod -c -r 1,246 -l ['+str(wl_lower)+','+str(wl_higher)+'] Spes'+str(prefix)+str(filelis[i])+'.fits')
 		#$CUREBIN/fiberextract -d pesvp0068.dist -f pesvp0068.fmod -c -r 1,246 -l [3500,5800] Spesvp0068.fits 
 		subprocess.call(bash_com, shell=True)
 
@@ -156,27 +231,27 @@ print 'Done with Fiber Extraction [3]'
 
 print '[4] READING FIBER EXTRACTED FITS FILES'
 
-im1 = pyfits.open('Fe'+str(fileprefix)+str(filelis[0])+'.fits')
+im1 = pyfits.open('FeSpes'+str(prefix)+str(filelis[0])+'.fits')
 d1 =  im1[0].data
 h1 = im1[0].header
 
-im2 = pyfits.open('Fe'+str(fileprefix)+str(filelis[1])+'.fits')
+im2 = pyfits.open('FeSpes'+str(prefix)+str(filelis[1])+'.fits')
 d2 =  im2[0].data
 h2 = im2[0].header
 
-im3 = pyfits.open('Fe'+str(fileprefix)+str(filelis[2])+'.fits')
+im3 = pyfits.open('FeSpes'+str(prefix)+str(filelis[2])+'.fits')
 d3 =  im3[0].data
 h3 = im3[0].header
 
-im4 = pyfits.open('Fe'+str(fileprefix)+str(filelis[3])+'.fits')
+im4 = pyfits.open('FeSpes'+str(prefix)+str(filelis[3])+'.fits')
 d4 =  im4[0].data
 h4 = im4[0].header
 
-im5 = pyfits.open('Fe'+str(fileprefix)+str(filelis[4])+'.fits')
+im5 = pyfits.open('FeSpes'+str(prefix)+str(filelis[4])+'.fits')
 d5 =  im5[0].data
 h5 = im5[0].header
 
-im6 = pyfits.open('Fe'+str(fileprefix)+str(filelis[5])+'.fits')
+im6 = pyfits.open('FeSpes'+str(prefix)+str(filelis[5])+'.fits')
 d6 =  im6[0].data
 h6 = im6[0].header
 
@@ -190,31 +265,16 @@ h6 = im6[0].header
 # 	d5 = np.vstack((d5[0:244,0:900],np.zeros(900)))
 # 	d6 = np.vstack((d6[0:244,0:900],np.zeros(900)))
 
-extra_row = np.zeros(x_end - x_srt)
+#find length of one spectrum in a fiber before it is trimmed 
+ln_orig = len(d1[0])
 
-if y_end == 245:
-	d1 = d1[y_srt:y_end,x_srt:x_end]
-	d2 = d2[y_srt:y_end,x_srt:x_end]
-	d3 = d3[y_srt:y_end,x_srt:x_end]
-	d4 = d4[y_srt:y_end,x_srt:x_end]
-	d5 = d5[y_srt:y_end,x_srt:x_end]
-	d6 = d6[y_srt:y_end,x_srt:x_end]
-elif y_end == 244:
-	d1 = np.vstack((d1[y_srt:y_end,x_srt:x_end],extra_row))
-	d2 = np.vstack((d2[y_srt:y_end,x_srt:x_end],extra_row))
-	d3 = np.vstack((d3[y_srt:y_end,x_srt:x_end],extra_row))
-	d4 = np.vstack((d4[y_srt:y_end,x_srt:x_end],extra_row))
-	d5 = np.vstack((d5[y_srt:y_end,x_srt:x_end],extra_row))
-	d6 = np.vstack((d6[y_srt:y_end,x_srt:x_end],extra_row))
-elif y_end == 243:
-	d1 = np.vstack((d1[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
-	d2 = np.vstack((d2[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
-	d3 = np.vstack((d3[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
-	d4 = np.vstack((d4[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
-	d5 = np.vstack((d5[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
-	d6 = np.vstack((d6[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
-else:
-	sys.exit("Excluding too many fibers. This script not equipt to handel this")
+#trim data based on user settings to get ride of NaNs and Infs 
+d1 = d1[y_srt:y_end,x_srt:x_end]
+d2 = d2[y_srt:y_end,x_srt:x_end]
+d3 = d3[y_srt:y_end,x_srt:x_end]
+d4 = d4[y_srt:y_end,x_srt:x_end]
+d5 = d5[y_srt:y_end,x_srt:x_end]
+d6 = d6[y_srt:y_end,x_srt:x_end]
 
 di1 = np.count_nonzero(np.isnan(d1)) + np.count_nonzero(np.isinf(d1))
 di2 = np.count_nonzero(np.isnan(d2)) + np.count_nonzero(np.isinf(d2))
@@ -230,7 +290,7 @@ if tot_nonzeros > 0:
 
 exptime = int(h1['EXPTIME'])
 
-#find length of one spectrum in a fiber
+#find length of one spectrum in a fiber after it is trimmed
 ln = len(d1[0])
 
 print "LEN: "+str(ln)
@@ -242,7 +302,7 @@ print "LEN: "+str(ln)
 print '[5] READING IFU CEN FILE'
 
 #using the IFU mapping file to find the positons of the fibers for each dither
-fn, fx1, fy1 = np.loadtxt(op.join(curebin_path,'../config/IFUcen_vp2_27m.txt'), usecols = (0,1,2), skiprows=3, unpack=True)
+fn, fx1, fy1 = np.loadtxt(op.join(vp_redux_path,'IFUcen_vp2_27m.txt'), usecols = (0,1,2), skiprows=3, unpack=True)
 fx2=fx1+shift_x[1]
 fy2=fy1+shift_y[1]   #Check that I changed the dither pattern correctly!
 fx3=fx2+shift_x[2]
@@ -263,25 +323,25 @@ if create_standSpec:
 	print '[6] FINDING THE AVERAGE CENTER OF THE STAR'
 
 	#making an alias for the original data files because these will be manipulated 
-	aux1=d1[0:num_fibs] 
-	aux2=d2[0:num_fibs] 
-	aux3=d3[0:num_fibs] 
-	aux4=d4[0:num_fibs] 
-	aux5=d5[0:num_fibs] 
-	aux6=d6[0:num_fibs] 
+	aux1=d1[0:y_end] 
+	aux2=d2[0:y_end] 
+	aux3=d3[0:y_end] 
+	aux4=d4[0:y_end] 
+	aux5=d5[0:y_end] 
+	aux6=d6[0:y_end] 
 
-	fx1=fx1[0:num_fibs]
-	fy1=fy1[0:num_fibs]
-	fx2=fx2[0:num_fibs]
-	fy2=fy2[0:num_fibs]
-	fx3=fx3[0:num_fibs]
-	fy3=fy3[0:num_fibs]
-	fx4=fx4[0:num_fibs]
-	fy4=fy4[0:num_fibs]
-	fx5=fx5[0:num_fibs]
-	fy5=fy5[0:num_fibs]
-	fx6=fx6[0:num_fibs]
-	fy6=fy6[0:num_fibs]
+	fx1=fx1[0:y_end]
+	fy1=fy1[0:y_end]
+	fx2=fx2[0:y_end]
+	fy2=fy2[0:y_end]
+	fx3=fx3[0:y_end]
+	fy3=fy3[0:y_end]
+	fx4=fx4[0:y_end]
+	fy4=fy4[0:y_end]
+	fx5=fx5[0:y_end]
+	fy5=fy5[0:y_end]
+	fx6=fx6[0:y_end]
+	fy6=fy6[0:y_end]
 
 	#integrating all light in each fiber, creates arrays containing total flux in each fiber for each dither
 	totflux1 = sum(aux1, axis = 1)
@@ -326,6 +386,9 @@ if create_standSpec:
 	#flux weighted position, output is the positon of the centroid [sx,sy] of star
 	sx=sum([wx1,wx2,wx3,wx4,wx5,wx6])/sum([sum(totflux1[sel1]),sum(totflux2[sel2]),sum(totflux3[sel3]),sum(totflux4[sel4]),sum(totflux5[sel5]),sum(totflux6[sel6])])
 	sy=sum([wy1,wy2,wy3,wy4,wy5,wy6])/sum([sum(totflux1[sel1]),sum(totflux2[sel2]),sum(totflux3[sel3]),sum(totflux4[sel4]),sum(totflux5[sel5]),sum(totflux6[sel6])])
+
+	if np.isnan(sx) or np.isnan(sy):
+		sys.exit('CAN\'T FIND THE STAR: please check the central fiber defined for your standard star (fib0)')
 
 	print 'position of centroid of star: '
 	print '	x: '+str(sx)
@@ -448,7 +511,7 @@ if create_standSpec:
 	print '[8] BUILDING MODELS OF STANDARD STAR'
 
 	Npts    = 1e5 # should be enough points
-	tot_fibs = num_fibs*len(filelis) #total number of fibers = number of fibers times number of dithers
+	tot_fibs = y_end*len(filelis) #total number of fibers = number of fibers times number of dithers
 
 	fiber_x = np.hstack((fx1,fx1,fx2,fx4,fx5,fx6)) # list of fiber x postions from all dithers
 	fiber_y = np.hstack((fy1,fy1,fy2,fy4,fy5,fy6)) # list of fiber y postions from all dithers
@@ -456,7 +519,8 @@ if create_standSpec:
 	wave_sol = float(h1['CDELT1']) #this is the wavelength per pixel
 	start_wave = float(h1['CRVAL1']) #this is the starting wavelength value
 
-	wave = np.add(np.arange(wave_sol,(wave_sol*ln)+(0.5*wave_sol),wave_sol),start_wave)  # wavelength solution for each of the fibers (should be same across the board)
+	wave_orig = np.add(np.arange(wave_sol,(wave_sol*ln_orig)+(0.5*wave_sol),wave_sol),start_wave)  # wavelength solution for each of the fibers (should be same across the board)
+	wave = wave_orig[x_srt:x_end]	#trim the wavelength solution to make the trimmed image
 
 	fiber_flux   = np.vstack((aux1,aux2,aux3,aux4,aux5,aux6)) # This is where all of the fiber fluxes are kept ()
 	F            = np.zeros((len(wave),)) # least squares method
@@ -479,7 +543,7 @@ if create_standSpec:
 		total_weight = sum(w)
 		total_flux   = np.divide(sum(fiber_flux,axis=0),total_weight) # Gary's method
 
-		F[j] = lstsq(w,fiber_flux[:,j:j+1])[0]
+		F[j] = lstsq(w,fiber_flux[:,j:j+1])[0] #more robust method that is used 
 
 	np.save('fluxCalibSpec_'+str(name), F)
 	np.save('WavelengthSolu_'+str(name), wave)
@@ -504,7 +568,8 @@ if create_sensFunc:
 	#convert standard spectrum to be per anstrom so it is invariant
 	stand_spec = np.divide(stand_spec_perpix,wave_sol) #DN/s/A
 
-	wave = np.add(np.arange(wave_sol,(wave_sol*ln)+(0.5*wave_sol),wave_sol),start_wave)
+	wave_orig = np.add(np.arange(wave_sol,(wave_sol*ln_orig)+(0.5*wave_sol),wave_sol),start_wave)
+	wave = wave_orig[x_srt:x_end] 	#trim the wavelength solution to make the trimmed image
 
 	#-------------------------------#
 	# CALCULATE SENISIVITY FUNCTION #
