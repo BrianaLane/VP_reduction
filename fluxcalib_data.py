@@ -194,6 +194,8 @@ start_wave = float(h1['CRVAL1']) #this is the starting wavelength value
 wave_orig = np.add(np.arange(wave_sol,(wave_sol*ln_orig)+(0.5*wave_sol),wave_sol),start_wave)  # wavelength solution for each of the fibers (should be same across the board)
 wave = wave_orig[x_srt:x_end] 	#trim the wavelength solution to make the trimmed image
 
+np.save('WavelengthSolu_'+str(field), wave)
+
 print 'Wave Sol for Data:     '+str(np.amax(wave))+' ; '+str(np.amin(wave))
 print 'Wave Sol for Standard: '+str(np.amax(wave_stand))+' ; '+str(np.amin(wave_stand))
 
