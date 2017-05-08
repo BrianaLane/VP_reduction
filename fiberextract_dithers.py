@@ -13,6 +13,9 @@ curebin_path  = '/Users/Briana/Documents/cure/virusp1/bin'
 #prefix for your sciene files 
 prefix = 'vp'
 
+#extract error files
+extract_error = True
+
 #define wavelength range (in angstroms)
 wl_lower = 4700
 wl_higher = 7200
@@ -23,7 +26,11 @@ wl_higher = 7200
 # Find files and run fiberextract #
 #*********************************#
 
-sci_im_list = glob.glob('Sp*.fits')
+if extract_error:
+	sci_im_list = glob.glob('e.Sp*.fits')
+else:
+	sci_im_list = glob.glob('Sp*.fits')	
+
 filelis = []
 for s in sci_im_list:
 	filename = string.split(s,'/')[-1]
@@ -32,6 +39,9 @@ for s in sci_im_list:
 
 print 'Files found: '+str(filelis)
 for i in range(len(filelis)):
-	bash_com = op.join(curebin_path,'fiberextract -d pes'+str(prefix)+str(filelis[i])+'.dist -f pes'+str(prefix)+str(filelis[i])+'.fmod -c -r 1,246 -l '+str(wl_lower)+','+str(wl_higher)+' Spes'+str(prefix)+str(filelis[i])+'.fits')
+	if extract_error:
+		bash_com = op.join(curebin_path,'fiberextract -d pes'+str(prefix)+str(filelis[i])+'.dist -f pes'+str(prefix)+str(filelis[i])+'.fmod -c -r 1,246 -l '+str(wl_lower)+','+str(wl_higher)+' e.Spes'+str(prefix)+str(filelis[i])+'.fits')
+	else:
+		bash_com = op.join(curebin_path,'fiberextract -d pes'+str(prefix)+str(filelis[i])+'.dist -f pes'+str(prefix)+str(filelis[i])+'.fmod -c -r 1,246 -l '+str(wl_lower)+','+str(wl_higher)+' Spes'+str(prefix)+str(filelis[i])+'.fits')
 	#$CUREBIN/fiberextract -d pesvp0068.dist -f pesvp0068.fmod -c -r 1,246 -l [3500,5800] Spesvp0068.fits 
 	subprocess.call(bash_com, shell=True)
