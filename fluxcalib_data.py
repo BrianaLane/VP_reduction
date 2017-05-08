@@ -13,15 +13,15 @@ from scipy import interpolate
 #************************#
 
 #define ID to perform flux calibration on
-field = 'M82_F8'
-id_stand = 3
-Trim_setting = 'apr16_07'
+field = 'M82_F2'
+id_stand = 1
+Trim_setting = 'apr15_red'
 
 #prefix for your sciene files 
 prefix = 'vp'
 
 #store the flux calibrated array as a new fits file 
-save_fits = True
+save_fits = False
 
 #choose one fiber to plot in the end (123 is middle fiber)
 plot_fib = 125
@@ -87,22 +87,22 @@ elif Trim_setting == 'feb17':
 	y_srt = 0   #default 0
 	y_end = 245 #default 245
 elif Trim_setting == 'mar16_red':
-	x_srt = 25 	#default 0
-	x_end = 915 #default 1024
+	x_srt = 20 	#default 0
+	x_end = 920 #default 1024
 	y_srt = 0   #default 0
-	y_end = 245 #default 245
+	y_end = 243 #default 245
 elif Trim_setting == 'mar16_blue':
 	x_srt = 35 	#default 0
-	x_end = 980 #default 1024
+	x_end = 985 #default 1024
 	y_srt = 0   #default 0
 	y_end = 245 #default 245
 elif Trim_setting == 'apr15_red':
-	x_srt = 14 	#default 0
-	x_end = 850 #default 1024
+	x_srt = 11 	#default 0
+	x_end = 958 #default 1024
 	y_srt = 0   #default 0
-	y_end = 245 #default 245
+	y_end = 243 #default 245
 elif Trim_setting == 'apr15_blue':
-	x_srt = 35 	#default 0
+	x_srt = 34 	#default 0
 	x_end = 1024 #default 1024
 	y_srt = 0   #default 0
 	y_end = 245 #default 245
@@ -194,7 +194,7 @@ start_wave = float(h1['CRVAL1']) #this is the starting wavelength value
 wave_orig = np.add(np.arange(wave_sol,(wave_sol*ln_orig)+(0.5*wave_sol),wave_sol),start_wave)  # wavelength solution for each of the fibers (should be same across the board)
 wave = wave_orig[x_srt:x_end] 	#trim the wavelength solution to make the trimmed image
 
-np.save('WavelengthSolu_'+str(field), wave)
+np.save(field+'/WavelengthSolu_'+str(field), wave)
 
 print 'Wave Sol for Data:     '+str(np.amax(wave))+' ; '+str(np.amin(wave))
 print 'Wave Sol for Standard: '+str(np.amax(wave_stand))+' ; '+str(np.amin(wave_stand))
