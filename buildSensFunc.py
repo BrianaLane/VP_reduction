@@ -23,7 +23,7 @@ create_standSpec = True
 create_sensFunc = True
 
 #Set to None if you do not want to trim
-Trim_setting = 'feb17'
+Trim_setting = 'mar17_31'
 
 #define wavelength range (in angstroms)
 #wl_lower  = 4700
@@ -78,12 +78,12 @@ else:
 
 if Trim_setting == 'mar17_31':
 	x_srt = 0 	#default 0
-	x_end = 980 #default 1024
+	x_end = 985 #default 1024
 	y_srt = 0   #default 0
 	y_end = 245 #default 245
 elif Trim_setting == 'mar17_30':
-	x_srt = 15 	#default 0
-	x_end = 900 #default 1024
+	x_srt = 12 	#default 0
+	x_end = 912 #default 1024
 	y_srt = 0   #default 0
 	y_end = 243 #default 245
 elif Trim_setting == 'feb17':
@@ -254,16 +254,6 @@ h5 = im5[0].header
 im6 = pyfits.open('FeSpes'+str(prefix)+str(filelis[5])+'.fits')
 d6 =  im6[0].data
 h6 = im6[0].header
-
-#check if it is red and if it is cut of the last few pixels because they contain nan values
-# if wl_higher > 6000:
-# 	print 'Trimming Red data to get rid of Nans and Infs'
-# 	d1 = np.vstack((d1[0:244,0:900],np.zeros(900)))
-# 	d2 = np.vstack((d2[0:244,0:900],np.zeros(900)))
-# 	d3 = np.vstack((d3[0:244,0:900],np.zeros(900)))
-# 	d4 = np.vstack((d4[0:244,0:900],np.zeros(900)))
-# 	d5 = np.vstack((d5[0:244,0:900],np.zeros(900)))
-# 	d6 = np.vstack((d6[0:244,0:900],np.zeros(900)))
 
 #find length of one spectrum in a fiber before it is trimmed 
 ln_orig = len(d1[0])
