@@ -13,15 +13,15 @@ from scipy import interpolate
 #************************#
 
 #define ID to perform flux calibration on
-field = 'M82_F2'
+field = 'M82_F12'
 id_stand = 1
-Trim_setting = 'apr15_red'
+Trim_setting = 'apr16_04'
 
 #prefix for your sciene files 
 prefix = 'vp'
 
 #store the flux calibrated array as a new fits file 
-save_fits = False
+save_fits = True
 
 #choose one fiber to plot in the end (123 is middle fiber)
 plot_fib = 125
@@ -162,25 +162,49 @@ im1 = pyfits.open(field+'/'+'FeSpes'+str(prefix)+str(filelis[0])+'.fits')
 d1 =  im1[0].data
 h1 = im1[0].header
 
+err_im1  = pyfits.open(field+'/e.FeSpes'+str(prefix)+str(filelis[0])+'.fits')
+de1 = err_im1[0].data
+he1 = err_im1[0].header
+
 im2 = pyfits.open(field+'/'+'FeSpes'+str(prefix)+str(filelis[1])+'.fits')
 d2 =  im2[0].data
 h2 = im2[0].header
+
+err_im2  = pyfits.open(field+'/e.FeSpes'+str(prefix)+str(filelis[1])+'.fits')
+de2 = err_im2[0].data
+he2 = err_im2[0].header
 
 im3 = pyfits.open(field+'/'+'FeSpes'+str(prefix)+str(filelis[2])+'.fits')
 d3 =  im3[0].data
 h3 = im3[0].header
 
+err_im3  = pyfits.open(field+'/e.FeSpes'+str(prefix)+str(filelis[2])+'.fits')
+de3 = err_im3[0].data
+he3 = err_im3[0].header
+
 im4 = pyfits.open(field+'/'+'FeSpes'+str(prefix)+str(filelis[3])+'.fits')
 d4 =  im4[0].data
 h4 = im4[0].header
+
+err_im4  = pyfits.open(field+'/e.FeSpes'+str(prefix)+str(filelis[3])+'.fits')
+de4 = err_im4[0].data
+he4 = err_im4[0].header
 
 im5 = pyfits.open(field+'/'+'FeSpes'+str(prefix)+str(filelis[4])+'.fits')
 d5 =  im5[0].data
 h5 = im5[0].header
 
+err_im5  = pyfits.open(field+'/e.FeSpes'+str(prefix)+str(filelis[4])+'.fits')
+de5 = err_im5[0].data
+he5 = err_im5[0].header
+
 im6 = pyfits.open(field+'/'+'FeSpes'+str(prefix)+str(filelis[5])+'.fits')
 d6 =  im6[0].data
 h6 = im6[0].header
+
+err_im6  = pyfits.open(field+'/e.FeSpes'+str(prefix)+str(filelis[5])+'.fits')
+de6 = err_im6[0].data
+he6 = err_im6[0].header
 
 #find length of one spectrum in a fiber before it is trimmed 
 ln_orig = len(d1[0])
@@ -236,6 +260,12 @@ if y_end == 245:
 	d4 = d4[y_srt:y_end,x_srt:x_end]
 	d5 = d5[y_srt:y_end,x_srt:x_end]
 	d6 = d6[y_srt:y_end,x_srt:x_end]
+	de1 = d1[y_srt:y_end,x_srt:x_end]
+	de2 = d2[y_srt:y_end,x_srt:x_end]
+	de3 = d3[y_srt:y_end,x_srt:x_end]
+	de4 = d4[y_srt:y_end,x_srt:x_end]
+	de5 = d5[y_srt:y_end,x_srt:x_end]
+	de6 = d6[y_srt:y_end,x_srt:x_end]
 elif y_end == 244:
 	d1 = np.vstack((d1[y_srt:y_end,x_srt:x_end],extra_row))
 	d2 = np.vstack((d2[y_srt:y_end,x_srt:x_end],extra_row))
@@ -243,6 +273,12 @@ elif y_end == 244:
 	d4 = np.vstack((d4[y_srt:y_end,x_srt:x_end],extra_row))
 	d5 = np.vstack((d5[y_srt:y_end,x_srt:x_end],extra_row))
 	d6 = np.vstack((d6[y_srt:y_end,x_srt:x_end],extra_row))
+	de1 = np.vstack((d1[y_srt:y_end,x_srt:x_end],extra_row))
+	de2 = np.vstack((d2[y_srt:y_end,x_srt:x_end],extra_row))
+	de3 = np.vstack((d3[y_srt:y_end,x_srt:x_end],extra_row))
+	de4 = np.vstack((d4[y_srt:y_end,x_srt:x_end],extra_row))
+	de5 = np.vstack((d5[y_srt:y_end,x_srt:x_end],extra_row))
+	de6 = np.vstack((d6[y_srt:y_end,x_srt:x_end],extra_row))
 elif y_end == 243:
 	d1 = np.vstack((d1[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
 	d2 = np.vstack((d2[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
@@ -250,6 +286,12 @@ elif y_end == 243:
 	d4 = np.vstack((d4[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
 	d5 = np.vstack((d5[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
 	d6 = np.vstack((d6[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	de1 = np.vstack((d1[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	de2 = np.vstack((d2[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	de3 = np.vstack((d3[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	de4 = np.vstack((d4[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	de5 = np.vstack((d5[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	de6 = np.vstack((d6[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
 else:
 	sys.exit("Excluding too many fibers. This script not equipt to handel this")
 
@@ -267,6 +309,10 @@ if tot_nonzeros > 0:
 
 dith_lis = [d1,d2,d3,d4,d5,d6]
 head_lis = [h1,h2,h3,h4,h5,h6]
+
+derr_lis = [de1,de2,de3,de4,de5,de6]
+herr_lis = [he1,he2,he3,he4,he5,he6]
+
 num_fibs = np.shape(d1)[0]
 exptime = int(h1['EXPTIME']) #this is the exposure time of an image
 
@@ -292,7 +338,10 @@ ecoeffint = f(wave)
 store_orig = []
 store_fcalib = []
 for i in range(len(filelis)):
+
 	dith = dith_lis[i]
+	derr = derr_lis[i]
+
 	for f in range(num_fibs):
 
 		spec = dith[f] #DN/pixel
@@ -316,17 +365,24 @@ for i in range(len(filelis)):
 			store_orig.append(spec_perA)
 			store_fcalib.append(fluxcal_spec)
 
+		#------------------------------#
+		# Error Frame Unit Converstion #
+		#------------------------------#
+
+		err_spec = derr[f]
+
+		#np.divide by the sensitivity function to get the error frame in flux units 
+		fluxcal_err = np.divide(err_spec,sens_func_interp)
+		derr[f] = fluxcal_err
+
 	if save_fits:
 		#store the flux calibrated array as a new fits file 
 		#hdu = pyfits.PrimaryHDU(dith)
 		pyfits.writeto(field+'/'+'FcalFeSpes'+str(prefix)+str(filelis[i])+'.fits', dith, header = head_lis[i],clobber=True)
 		print 'Created file: '+field+'/'+'FcalFeSpes'+str(prefix)+str(filelis[i])+'.fits'
 
-		err_im  = pyfits.open(field+'/e.Spes'+str(prefix)+str(filelis[i])+'.fits')
-		err_dat = err_im[0].data
-		err_hdr = err_im[0].header
-		pyfits.writeto(field+'/'+'e.FcalFeSpes'+str(prefix)+str(filelis[i])+'.fits', err_dat, header = err_hdr,clobber=True)
-		print 'Copied file: '+field+'/'+'e.Spes'+str(prefix)+str(filelis[i])+'.fits to: '+field+'/'+'e.FcalFeSpes'+str(prefix)+str(filelis[i])+'.fits'
+		pyfits.writeto(field+'/'+'e.FcalFeSpes'+str(prefix)+str(filelis[i])+'.fits', derr, header = herr_lis[i],clobber=True)
+		print 'Created file: ' +field+'/'+'e.FcalFeSpes'+str(prefix)+str(filelis[i])+'.fits'
 
 plt.subplot(2,1,1)
 plt.plot(wave, store_orig[0], color = 'red', label='1')
