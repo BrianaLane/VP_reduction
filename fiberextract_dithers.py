@@ -18,8 +18,8 @@ prefix = 'vp'
 extract_error = True
 
 #define wavelength range (in angstroms)
-wl_lower = 4700
-wl_higher = 7200
+wl_lower = 3500
+wl_higher = 5900
 
 #+++++++++++++++++++ end user defined variables +++++++++++++++++++++#
 

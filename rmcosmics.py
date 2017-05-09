@@ -5,6 +5,8 @@ import os.path as op
 import string
 import cosmics
 
+standard_stars = ['Feige34','Feige67','GRW70d5824','BD_75d325','BD_75D325']
+
 #this function calls cosmics to do cosmic ray rejection on a list of filenames 
 def rmcosmicfits(filenames):
     
@@ -41,9 +43,14 @@ for i in images:
     typ = im[0].header['IMAGETYP'] #This will be object for science frames but also for sky frames 
     obj = im[0].header['OBJECT'] #Use this to tell whether object frames are science or sky frames
     dith = string.split(obj,' ') #Split at the spaces. Science frames with have dith[0]=='dither'
-    if len(dith) > 1: 
-        if typ == 'object' and dith[1] == 'dither': #this gives science frames
-            sci_im.append(i)
+    if dith[0] in standard_stars:
+        print '\n'
+        print 'skipping '+dith[0]+' '+i
+        print '\n'
+    else:
+        if len(dith) > 1:
+            if typ == 'object' and dith[1] == 'dither': #this gives science frames
+                sci_im.append(i)
 
 rmcosmicfits(sci_im)
 

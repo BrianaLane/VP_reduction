@@ -20,7 +20,7 @@ import sys
 
 #define the field youa are working on. 
 #the script will use the guide start coordinates defined for that field
-field = 'F4'
+field = 'Fb'
 
 #This path should point to the location of both files:
 #	runsex.in, dith_vp2_subdither.lis
@@ -50,10 +50,10 @@ elif field == 'GRW70d5824':
 	y2 = 355 #max
 
 elif field == 'BD_75D325':
-	x1 = 365 #min
-	x2 = 405 #max
-	y1 = 265 #min
-	y2 = 305 #max
+	x1 = 365 #min #30
+	x2 = 405 #max #65
+	y1 = 265 #min #320
+	y2 = 305 #max #350
 
 elif field == 'Fa':
 	x1 = 295 #min
@@ -139,6 +139,8 @@ elif field == 'F15':
 	y1 = 95 #min
 	y2 = 170 #max
 
+#+++++++++++++++++++ end user defined variables +++++++++++++++++++++#
+
 #********************************#
 # Building the guide star frames #
 #********************************#
@@ -193,7 +195,7 @@ shutil.copy ( op.join(script_path,'runsex.in'), './' )
 
 #These commands set up the small.fits guider files for source extractor
 #they then run sorce extractor on the files
-os.system('ls guider_small/guider*small.fits > small.list')
+os.system('ls guider_small/*small.fits > small.list')
 os.system('awk \'{print "sex",$1,"-c runsex.in -CATALOG_NAME",$1 "cat"}\' small.list > small.tmp')
 os.system('sed \'s/fitscat/cat/g\' small.tmp > sexcommand')
 os.system('chmod u=rwx sexcommand')

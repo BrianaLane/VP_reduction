@@ -1,6 +1,6 @@
-from numpy import * 
+import numpy as np
 import pyfits 
-from string import *
+import string
 import glob
 import subprocess
 import os.path as op
@@ -12,9 +12,11 @@ import os.path as op
 #********************#
 
 #path to science images (In reduction directory this is your data folder if old CURE, object folder if new CURE)
-sci_path_base = '/Users/Briana/Documents/Grad_School/VIRUS_P/VP_APR_2016/vp_apr20160407/data'
+sci_path_base = '/Users/Briana/Documents/Grad_School/VIRUS_P/VP_MAR_2017/20170330/data'
 #path to the guider files
-guide_path = '/Users/Briana/Documents/Grad_School/VIRUS_P/VP_APR_2016/20160407/guider'
+guide_path = '/Users/Briana/Documents/Grad_School/VIRUS_P/VP_MAR_2017/20170330/guider'
+
+#+++++++++++++++++++ end user defined variables +++++++++++++++++++++#
 
 #********************************#
 # Find data and define functions #
@@ -31,12 +33,12 @@ def get_time(header):
     timeh = header['UT']
     dateh = header['DATE-OBS']
 
-    t = split(timeh,':')
+    t = string.split(timeh,':')
     hour = float(t[0])
     minu = float(t[1])
     secs = float(t[2]) 
 
-    d = split(dateh,'-')
+    d = string.split(dateh,'-')
     year = int(d[0])
     month = int(d[1])
     day = int(d[2])
@@ -64,9 +66,9 @@ for i in range(len(guide_im_list)):
     gtime.append(time)
     gdate.append(date)
 
-save(op.join(guide_path,'guider_dates'),gdate)
-save(op.join(guide_path,'guider_times'),gtime)
-save(op.join(guide_path,'guider_names'),guide_im_list)
+np.save(op.join(guide_path,'guider_dates'),gdate)
+np.save(op.join(guide_path,'guider_times'),gtime)
+np.save(op.join(guide_path,'guider_names'),guide_im_list)
 
 #*************************************#
 # Match sci frames with guider frames #
@@ -90,9 +92,9 @@ for o in range(len(object_list)):
         f1.close()
         #subprocess.call('ls '+sci_path+'/Sp*.fits > '+sci_path+'/sci_im_lis.lis', shell=True)
 
-        gtime = load(op.join(guide_path, 'guider_times.npy'))
-        gdate = load(op.join(guide_path, 'guider_dates.npy'))
-        gname = load(op.join(guide_path, 'guider_names.npy') )
+        gtime = np.load(op.join(guide_path, 'guider_times.npy'))
+        gdate = np.load(op.join(guide_path, 'guider_dates.npy'))
+        gname = np.load(op.join(guide_path, 'guider_names.npy') )
 
         num_dithers = len(sci_im_list)
 
@@ -121,9 +123,9 @@ for o in range(len(object_list)):
             sdate.append(date)
 
         for d in range(num_dithers):
-            dmatch = where(gdate == sdate[d])[0]
+            dmatch = np.where(gdate == sdate[d])[0]
             #tmatch = where(stime[d] < gtime[dmatch] < (stime[d]+exp_length))
-            tmatch = where(logical_and(gtime[dmatch] > stime[d], gtime[dmatch] < (stime[d]+exp_length)))[0]
+            tmatch = np.where(np.logical_and(gtime[dmatch] > stime[d], gtime[dmatch] < (stime[d]+exp_length)))[0]
 
             im_names = gname[dmatch[tmatch]]
 

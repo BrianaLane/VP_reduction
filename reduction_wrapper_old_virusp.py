@@ -68,7 +68,7 @@ print ('## RUNNING DATA REDUCTION ON VIRUS-P ##')
 print ('#######################################')
 
 ###################
-# Setting CUREVP #
+# Setting CUREBIN #
 ###################
 
 #Old CURE for VIRUS-P
@@ -82,15 +82,15 @@ if not CUREVP:
 
 #New CURE for VIRUS-P
 
-CUREVP = None
-if not CUREVP:
-    CUREVP = environ.get('CUREVP')
-if not CUREVP:
-    print("Please set CUREVP as  environment variable or in the script")
+CUREBIN = None
+if not CUREBIN:
+    CUREBIN = environ.get('CUREBIN')
+if not CUREBIN:
+    print("Please set CUREBIN as  environment variable or in the script")
     sys.exit(1)
 
 #checking that LRS2 is defined in specconf.h 
-cureversion = os.popen(op.join(CUREVP, 'cureversion')).readlines()
+cureversion = os.popen(op.join(CUREBIN, 'cureversion')).readlines()
 spec_define = cureversion[4].split(' ')[1]
 instrument = spec_define.rstrip('\n')
 
@@ -169,7 +169,7 @@ DIR_DICT     = {    0:zro_dir,    1:drk_dir,    2:cmp_dir,    3:flt_dir,    4:sc
 #############################
 
 #specifies directories for lines and mapping/cen files for LRS2 in the LRS2 config directory 
-map_file = op.join(CUREVP, '../config/IFUcen_VP2_27m.txt')
+map_file = op.join(CUREBIN, '../config/IFUcen_VP2_27m.txt')
 
 ##################
 # Define Classes #
