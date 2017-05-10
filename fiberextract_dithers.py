@@ -15,7 +15,7 @@ curebin_path  = '/Users/Briana/Documents/cure/virusp1/bin'
 prefix = 'vp'
 
 #extract error files
-extract_error = True
+extract_error = False
 
 #define wavelength range (in angstroms)
 wl_lower = 3500
@@ -38,6 +38,7 @@ for s in sci_im_list:
 print 'Files found: '+str(filelis)
 for i in range(len(filelis)):
 	if extract_error:
+		bash_com = op.join(curebin_path,'fiberextract -d pes'+str(prefix)+str(filelis[i])+'.dist -f pes'+str(prefix)+str(filelis[i])+'.fmod -c -r 1,246 -l '+str(wl_lower)+','+str(wl_higher)+' Spes'+str(prefix)+str(filelis[i])+'.fits')
 		bash_com = op.join(curebin_path,'fiberextract -d pes'+str(prefix)+str(filelis[i])+'.dist -f pes'+str(prefix)+str(filelis[i])+'.fmod -c -r 1,246 -l '+str(wl_lower)+','+str(wl_higher)+' e.Spes'+str(prefix)+str(filelis[i])+'.fits')
 	else:
 		bash_com = op.join(curebin_path,'fiberextract -d pes'+str(prefix)+str(filelis[i])+'.dist -f pes'+str(prefix)+str(filelis[i])+'.fmod -c -r 1,246 -l '+str(wl_lower)+','+str(wl_higher)+' Spes'+str(prefix)+str(filelis[i])+'.fits')
