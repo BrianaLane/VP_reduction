@@ -588,12 +588,15 @@ def subtractsky_frame(frame,skyframe,skyscale,opts):
 
     return command
     
-def fibextract_Resample(filenames,skysub_files,wave_range,nsample,opts):
+def fibextract_Resample(filenames,skysub_files,mean_files,wave_range,nsample,opts):
 
     wave_range = str(wave_range[0])+','+str(wave_range[1])
 
     for f in filenames:
 
+        if mean_files:
+            dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][2::] + '.dist'
+            fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][2::]+ '.fmod'
         if skysub_files:
             dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][1::] + '.dist'
             fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][1::]+ '.fmod'
@@ -608,14 +611,21 @@ def fibextract_Resample(filenames,skysub_files,wave_range,nsample,opts):
     return command
 
 
-def fibextract(filenames,skysub_files,opts):
+def fibextract(filenames,skysub_files,mean_files,opts):
 
     wave_range = str(wave_range[0])+','+str(wave_range[1])
 
     for f in filenames:
 
-        dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0] + '.dist'
-        fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0] + '.fmod'
+        if mean_files:
+            dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][2::] + '.dist'
+            fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][2::]+ '.fmod'
+        if skysub_files:
+            dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][1::] + '.dist'
+            fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][1::]+ '.fmod'
+        else:
+            dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0] + '.dist'
+            fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0] + '.fmod'
     
         command = 'fiberextract %s -x -d %s -f %s %s' %(opts,dist,fmod,f)
         
@@ -1028,27 +1038,26 @@ def basicred(redux_dir, DIR_DICT, basic = False,
         print ('****************************************')
         #check that deformer has been run 
         dist_files = glob.glob(op.join(config.redux_dir,'*.dist'))
-        if len(dist_files) == 0:
+        if len(dist_files) == 0:7
             sys.exit("You must run deformer before you can run fiber extract")
 
-        if config.im_prefix[0] == 'S':
+        subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" + str(config.im_prefix) +"MS*.fits")
 
-            print("Finding files with normal Sky subtraction prefix (Spses)")
-
-            subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" + str(config.im_prefix) +"*.fits")
-
-            if len(subsky_sci) == 0:
-                skysub_files = False
-                sci_objs = config.science_frames + config.standard_frames
-                sci_frames = [s for s in orig_sci if s.object in sci_objs]
-                subsky_sci = [(f.origloc + '/' + f.basename + '.fits') for f in sci_frames]
-            else:
-                skysub_files = True
-
+        if len(subsky_sci) == 0:
+            mean_files = False
+            subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" + str(config.im_prefix) +"S*.fits")
         else:
-            subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" + str(config.im_prefix) +"*.fits")
-            if len(subsky_sci) == 0:
-                sys.exit("Could not find files with prefix "+str(config.im_prefix))
+            mean_files = True
+            print('fiber extracting sky subtracted frames')
+
+        if len(subsky_sci) == 0:
+            skysub_files = False
+            sci_objs = config.science_frames + config.standard_frames
+            sci_frames = [s for s in orig_sci if s.object in sci_objs]
+            subsky_sci = [(f.origloc + '/' + f.basename + '.fits') for f in sci_frames]
+        else:
+            skysub_files = True
+            print('fiber extracting sky subtracted frames')
 
         print ('Found '+str(len(subsky_sci))+' Science Frames for Fiber Extraction')
 
