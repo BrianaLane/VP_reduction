@@ -595,11 +595,9 @@ def fibextract_Resample(filenames,filetype,wave_range,nsample,opts):
     for f in filenames:
 
         if filetype=='mean':
-            print (op.dirname( f ) + '/' + op.basename( f ).split('.')[0])
-            print (op.dirname( f ) + '/' + op.basename( f ).split('.')[0][2::])
             dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][2::] + '.dist'
             fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][2::]+ '.fmod'
-        if filetype=='subsky':
+        elif filetype=='subsky':
             dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][1::] + '.dist'
             fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][1::]+ '.fmod'
         else:
@@ -622,7 +620,7 @@ def fibextract(filenames,filetype,opts):
         if filetype=='mean':
             dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][2::] + '.dist'
             fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][2::]+ '.fmod'
-        if filetype=='subsky':
+        elif filetype=='subsky':
             dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][1::] + '.dist'
             fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][1::]+ '.fmod'
         else:
