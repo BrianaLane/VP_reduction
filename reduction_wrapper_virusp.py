@@ -1038,7 +1038,7 @@ def basicred(redux_dir, DIR_DICT, basic = False,
         print ('****************************************')
         #check that deformer has been run 
         dist_files = glob.glob(op.join(config.redux_dir,'*.dist'))
-        if len(dist_files) == 0:7
+        if len(dist_files) == 0:
             sys.exit("You must run deformer before you can run fiber extract")
 
         subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" + str(config.im_prefix) +"MS*.fits")
