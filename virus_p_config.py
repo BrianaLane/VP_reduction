@@ -58,7 +58,7 @@ sky_scaling 	= 1 			#[float] Scale the sky by this factor before subtracting. (*
 #--------------------#
 # fiber extract opts #
 #--------------------#
-im_prefrix		 = 'mean_'		#[string] Prefix of images you wish to fiberextract (defualt: 'Spses')
+im_prefix		 = 'mean_'		#[string] Prefix of images you wish to fiberextract (defualt: 'Spses')
 wl_resample 	 = True 		#[True/False] If True it will resample in wavelength, Does not resample in wavelength if False 
 
 #----------------#
