@@ -588,16 +588,16 @@ def subtractsky_frame(frame,skyframe,skyscale,opts):
 
     return command
     
-def fibextract_Resample(filenames,skysub_files,mean_files,wave_range,nsample,opts):
+def fibextract_Resample(filenames,filetype,wave_range,nsample,opts):
 
     wave_range = str(wave_range[0])+','+str(wave_range[1])
 
     for f in filenames:
 
-        if mean_files:
+        if filetype=='mean':
             dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][2::] + '.dist'
             fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][2::]+ '.fmod'
-        if skysub_files:
+        if filetype=='subsky':
             dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][1::] + '.dist'
             fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][1::]+ '.fmod'
         else:
@@ -611,16 +611,16 @@ def fibextract_Resample(filenames,skysub_files,mean_files,wave_range,nsample,opt
     return command
 
 
-def fibextract(filenames,skysub_files,mean_files,opts):
+def fibextract(filenames,filetype,opts):
 
     wave_range = str(wave_range[0])+','+str(wave_range[1])
 
     for f in filenames:
 
-        if mean_files:
+        if filetype=='mean':
             dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][2::] + '.dist'
             fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][2::]+ '.fmod'
-        if skysub_files:
+        if filetype=='subsky':
             dist = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][1::] + '.dist'
             fmod = op.dirname( f ) + '/' + op.basename( f ).split('.')[0][1::]+ '.fmod'
         else:
@@ -1043,21 +1043,22 @@ def basicred(redux_dir, DIR_DICT, basic = False,
 
         subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" +"MS*.fits")
 
-        if len(subsky_sci) == 0:
-            mean_files = False
-            subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" +"S*.fits")
-        else:
-            mean_files = True
-            print('fiber extracting sky subtracted frames')
+        if len(subsky_sci) > 0:
+            filetype = 'mean'
+            print('fiber extracting mean frames')
 
-        if len(subsky_sci) == 0:
-            skysub_files = False
+        else:
+            subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" +"S*.fits")
+
+        if len(subsky_sci) > 0:
+            skysub_files = 'skysub'
+        else:
+            fileype = 'none'
             sci_objs = config.science_frames + config.standard_frames
             sci_frames = [s for s in orig_sci if s.object in sci_objs]
             subsky_sci = [(f.origloc + '/' + f.basename + '.fits') for f in sci_frames]
-        else:
-            skysub_files = True
-            print('fiber extracting sky subtracted frames')
+
+
 
         print ('Found '+str(len(subsky_sci))+' Science Frames for Fiber Extraction')
 
@@ -1071,13 +1072,13 @@ def basicred(redux_dir, DIR_DICT, basic = False,
             else:
                 nsample = 2048
 
-            fibextract_Resample(subsky_sci,skysub_files, mean_files, config.spec_range,nsample,fibextractopts) 
+            fibextract_Resample(subsky_sci,filetype, config.spec_range,nsample,fibextractopts) 
         else:
             print ('    +++++++++++++++++++++++++++++++')
             print ('     Extraction Without Resampling ')
             print ('    +++++++++++++++++++++++++++++++')
 
-            fibextract(subsky_sci, skysub_files, mean_files, fibextractopts)
+            fibextract(subsky_sci, filetype, fibextractopts)
 
     #CURE saves these files from deformer outside of the redux directory for some reason.
     #This moves them inside of the redux directory.
