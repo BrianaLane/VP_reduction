@@ -1071,13 +1071,13 @@ def basicred(redux_dir, DIR_DICT, basic = False,
             else:
                 nsample = 2048
 
-            fibextract_Resample(subsky_sci,skysub_files, config.spec_range,nsample,fibextractopts) 
+            fibextract_Resample(subsky_sci,skysub_files, mean_files, config.spec_range,nsample,fibextractopts) 
         else:
             print ('    +++++++++++++++++++++++++++++++')
             print ('     Extraction Without Resampling ')
             print ('    +++++++++++++++++++++++++++++++')
 
-            fibextract(subsky_sci, skysub_files, fibextractopts)
+            fibextract(subsky_sci, skysub_files, mean_files, fibextractopts)
 
     #CURE saves these files from deformer outside of the redux directory for some reason.
     #This moves them inside of the redux directory.
