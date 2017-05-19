@@ -1031,14 +1031,24 @@ def basicred(redux_dir, DIR_DICT, basic = False,
         if len(dist_files) == 0:
             sys.exit("You must run deformer before you can run fiber extract")
 
-        subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" + "Spses*.fits")
-        if len(subsky_sci) == 0:
-            skysub_files = False
-            sci_objs = config.science_frames + config.standard_frames
-            sci_frames = [s for s in orig_sci if s.object in sci_objs]
-            subsky_sci = [(f.origloc + '/' + f.basename + '.fits') for f in sci_frames]
+        if config.im_prefix[0] == 'S':
+
+            print("Finding files with normal Sky subtraction prefix (Spses)")
+
+            subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" + str(config.im_prefix) +"*.fits")
+
+            if len(subsky_sci) == 0:
+                skysub_files = False
+                sci_objs = config.science_frames + config.standard_frames
+                sci_frames = [s for s in orig_sci if s.object in sci_objs]
+                subsky_sci = [(f.origloc + '/' + f.basename + '.fits') for f in sci_frames]
+            else:
+                skysub_files = True
+
         else:
-            skysub_files = True
+            subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" + str(config.im_prefix) +"*.fits")
+            if len(subsky_sci) == 0:
+                sys.exit("Could not find files with prefix "+str(config.im_prefix))
 
         print ('Found '+str(len(subsky_sci))+' Science Frames for Fiber Extraction')
 
