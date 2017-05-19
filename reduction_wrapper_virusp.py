@@ -1041,11 +1041,11 @@ def basicred(redux_dir, DIR_DICT, basic = False,
         if len(dist_files) == 0:
             sys.exit("You must run deformer before you can run fiber extract")
 
-        subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" + str(config.im_prefix) +"MS*.fits")
+        subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" +"MS*.fits")
 
         if len(subsky_sci) == 0:
             mean_files = False
-            subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" + str(config.im_prefix) +"S*.fits")
+            subsky_sci = glob.glob(config.redux_dir + "/" + sci_dir + "/*/" +"S*.fits")
         else:
             mean_files = True
             print('fiber extracting sky subtracted frames')
