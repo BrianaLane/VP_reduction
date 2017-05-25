@@ -75,6 +75,8 @@ CUREBIN = None
 if not CUREBIN:
     CUREBIN = environ.get('CUREBIN')
 if not CUREBIN:
+    CUREBIN = environ.get('CUREVP')
+if not CUREBIN:
     print("Please set CUREBIN as reenvironment variable or in the script")
     sys.exit(1)
 
