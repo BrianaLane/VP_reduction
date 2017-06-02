@@ -16,6 +16,9 @@ sci_path_base = '/Users/Briana/Documents/Grad_School/VIRUS_P/VP_MAR_2017/2017033
 #path to the guider files
 guide_path = '/Users/Briana/Documents/Grad_School/VIRUS_P/VP_MAR_2017/20170330/guider'
 
+#prefix for sky subtracted frames
+frame_prefix = 'S*'
+
 #+++++++++++++++++++ end user defined variables +++++++++++++++++++++#
 
 #********************************#
@@ -83,7 +86,7 @@ for o in range(len(object_list)):
 
         #path to science object
         sci_path = op.join(sci_path_base, obj)
-        sci_im_list = glob.glob(op.join(sci_path, 'Sp*.fits'))
+        sci_im_list = glob.glob(op.join(sci_path, frame_prefix+'.fits'))
 
         file1 = 'sci_im_lis.lis'
         f1 = open(op.join(sci_path, file1),'w')
