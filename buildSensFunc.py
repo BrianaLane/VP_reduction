@@ -9,6 +9,7 @@ import numpy.ma as ma
 from pylab import *
 import os.path as op
 import sys
+import glob
 
 #This should be run inside of the standard star folder (data/stand_star)
 
@@ -38,6 +39,12 @@ vp_redux_path = '/Users/Briana/Documents/Grad_School/VIRUS_P/VP_reduction'
 
 #Data name prefix
 prefix = 'vp'
+
+#name of the dither file (should be the same for all objects)
+dith_file = 'dith.txt'
+
+#find the filename numbers from sci_im_lis.lis
+sci_im_list = glob.glob('FeMSpses*')
 
 #--------------------------------------#
 # User defined standard star variables #
@@ -156,13 +163,11 @@ aperture=5 # psf of aperture of fiber
 halfap=float(aperture/2.0)
 fib_radius = 2.15 #fiber radius is arcsec
 
-#find the filename numbers from sci_im_lis.lis
-sci_im_list = open('sci_im_lis.lis').read().splitlines()
-filelis = []
-for s in sci_im_list:
-	filename = string.split(s,'/')[-1]
-	filenum  = filename[-9:-5]
-	filelis.append(filenum)
+filelis = sci_im_list
+# for s in sci_im_list:
+# 	filename = string.split(s,'/')[-1]
+# 	filenum  = filename[-9:-5]
+# 	filelis.append(filenum)
 
 print 'FLUX CALIB FOR '+str(name)
 print 'Files found: '+str(filelis)
@@ -170,9 +175,6 @@ print 'Files found: '+str(filelis)
 #--------------------------------------------#
 # FIND OBSERVATION PARAMETERS FROM DITH FILE #
 #--------------------------------------------#
-
-#name of the dither file (should be the same for all objects)
-dith_file = 'dith.txt'
 
 shift_x, shift_y, see_lis, airmass_lis = np.loadtxt(dith_file, usecols = (4,5,6,8), unpack=True)
 seeing = np.average(see_lis) # seeing in Fiber Coordinate units, presumably arcseconds
