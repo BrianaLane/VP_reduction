@@ -19,7 +19,10 @@ vp_redux_path = '/Users/Briana/Documents/Grad_School/VIRUS_P/VP_reduction'
 #If your headers are missing RA and DEC can read in your work file to add them to headers
 add_coords = True
 #you only need this path if you want to add RA and DEC to headers
-worklist = '/Users/Briana/Documents/Grad_School/VIRUS_P/Observing/mar2017_run/object_lis.txt'
+worklist = '/Users/Briana/Documents/Grad_School/VIRUS_P/TAURUS_McD_trip/vp_TAURUS_worklist.wrk'
+
+#IFUcen file 
+cen_file = op.join(vp_redux_path,'IFUcen_VP2_27m_mkcube.txt')
 
 #----------------------#
 # make cube parameters #
@@ -48,8 +51,6 @@ if instrument == 'VIRUS-P':
 else: 
     print ('You need to update specconf.h in CURE to define VIRUS-P')
     sys.exit('Right now specconf.h defines '+instrument)
-
-cen_file = op.join(vp_redux_path,'IFUcen_VP2_27m_mkcube.txt')
 
 #find the filename numbers from sci_im_lis.lis
 sci_im_list = open('sci_im_lis.lis').read().splitlines()
