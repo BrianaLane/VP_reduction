@@ -13,9 +13,8 @@ from scipy import interpolate
 #************************#
 
 #define ID to perform flux calibration on
-field = 'M82_F12'
-id_stand = 1
-Trim_setting = 'apr16_04'
+field = 'M82_Fc'
+Trim_setting = 'feb17'
 
 #prefix for your sciene files 
 prefix = 'vp'
@@ -26,21 +25,24 @@ save_fits = True
 #choose one fiber to plot in the end (123 is middle fiber)
 plot_fib = 125
 
+#extinc_McD.dat needs to be saved in the scripts directory in your CURE folder
+vp_redux_path = '/Users/Briana/Documents/Grad_School/VIRUS_P/VP_reduction'
+
 #----------------------------#
 # User defined standard star #
 #----------------------------#
 
 #import sensitivity function
-if id_stand == 1:
-	name_stand = 'Feige34'
-elif id_stand == 2: 
-	name_stand = 'Feige67'
-elif id_stand == 3:
-	name_stand = 'GRW70d5824'
-elif id_stand == 4:
-	name_stand = 'BD_75D325'
-else: 
-	print "ID does not exist"
+# if id_stand == 1:
+# 	name_stand = 'Feige34'
+# elif id_stand == 2: 
+# 	name_stand = 'Feige67'
+# elif id_stand == 3:
+# 	name_stand = 'GRW70d5824'
+# elif id_stand == 4:
+# 	name_stand = 'BD_75D325'
+# else: 
+# 	print "ID does not exist"
 
 #-------------------------#
 # User defined trim image #
@@ -51,67 +53,92 @@ if Trim_setting == 'apr16_03':
 	x_end = 990 #default 1024
 	y_srt = 0   #default 0
 	y_end = 245 #default 245
+	color = 'B'
+	name_stand = 'Feige34'
 elif Trim_setting == 'apr16_04':
 	x_srt = 0 	#default 0
 	x_end = 920 #default 1024
 	y_srt = 0   #default 0
 	y_end = 244 #default 245
+	color = 'R'
+	name_stand = 'Feige34'
 elif Trim_setting == 'apr16_05':
 	x_srt = 0 	#default 0
 	x_end = 985 #default 1024
 	y_srt = 0   #default 0
 	y_end = 245 #default 245
+	color = 'B'
+	name_stand = 'Feige34'
 elif Trim_setting == 'apr16_06':
 	x_srt = 0 	#default 0
 	x_end = 910 #default 1024
 	y_srt = 0   #default 0
 	y_end = 244 #default 245
+	color = 'R'
+	name_stand = 'Feige34'
 elif Trim_setting == 'apr16_07':
 	x_srt = 0 	#default 0
 	x_end = 910 #default 1024
 	y_srt = 0   #default 0
 	y_end = 244 #default 245
+	color = 'R'
+ 	name_stand = 'GRW70d5824'
 elif Trim_setting == 'mar17_30':
 	x_srt = 12 	#default 0
 	x_end = 912 #default 1024
 	y_srt = 0   #default 0
 	y_end = 243 #default 245
+	color = 'R'
+ 	name_stand = 'BD_75D325'
 elif Trim_setting == 'mar17_31':
 	x_srt = 34 	#default 0
 	x_end = 988 #default 1024
 	y_srt = 0   #default 0
 	y_end = 245 #default 245
+	color = 'B'
+ 	name_stand = 'BD_75D325'
 elif Trim_setting == 'feb17':
 	x_srt = 35 	#default 0
 	x_end = 988 #default 1024
 	y_srt = 0   #default 0
 	y_end = 245 #default 245
-elif Trim_setting == 'mar16_red':
+	color = 'B'
+ 	name_stand = 'BD_75D325'
+elif Trim_setting == 'mar16_05_red':
 	x_srt = 20 	#default 0
 	x_end = 920 #default 1024
 	y_srt = 0   #default 0
-	y_end = 243 #default 245
-elif Trim_setting == 'mar16_blue':
+	y_end = 243 #default 24
+	color = 'R'
+ 	name_stand = 'BD_75D325'
+elif Trim_setting == 'mar16_06_blue':
 	x_srt = 35 	#default 0
 	x_end = 985 #default 1024
 	y_srt = 0   #default 0
 	y_end = 245 #default 245
+	color = 'B'
+	name_stand = 'Feige34'
 elif Trim_setting == 'apr15_red':
 	x_srt = 11 	#default 0
 	x_end = 958 #default 1024
 	y_srt = 0   #default 0
-	y_end = 243 #default 245
+	y_end = 243 #default 24
+	color = 'R'
+	name_stand = 'Feige34'
 elif Trim_setting == 'apr15_blue':
 	x_srt = 34 	#default 0
 	x_end = 1024 #default 1024
 	y_srt = 0   #default 0
 	y_end = 245 #default 245
+	color = 'B'
+	name_stand = 'Feige34'
 else:
 	print 'No trim setting applied'
 	x_srt = 0 	#default 0
 	x_end = 1024 #default 1024
 	y_srt = 0   #default 0
 	y_end = 245 #default 245
+	color = 'NA'
 
 #+++++++++++++++++++ end user defined variables +++++++++++++++++++++#
 
@@ -218,8 +245,6 @@ start_wave = float(h1['CRVAL1']) #this is the starting wavelength value
 wave_orig = np.add(np.arange(wave_sol,(wave_sol*ln_orig)+(0.5*wave_sol),wave_sol),start_wave)  # wavelength solution for each of the fibers (should be same across the board)
 wave = wave_orig[x_srt:x_end] 	#trim the wavelength solution to make the trimmed image
 
-np.save(field+'/WavelengthSolu_'+str(field), wave)
-
 print 'Wave Sol for Data:     '+str(np.amax(wave))+' ; '+str(np.amin(wave))
 print 'Wave Sol for Standard: '+str(np.amax(wave_stand))+' ; '+str(np.amin(wave_stand))
 
@@ -247,6 +272,9 @@ f_stand = interpolate.interp1d(x=wave_stand, y=sens_func)
 #build a sensitivity function based on the wavelength solution for the object spectra 
 sens_func_interp = f_stand(wave)
 
+np.save(field+'/WavelengthSolu_'+str(field), wave)
+#np.save('/Users/Briana/Documents/Grad_School/VIRUS_P/wave_sols/WavelengthSolu_'+str(field)+'_'+str(color), wave)
+
 #-----------#
 # TRIM DATA #
 #-----------#
@@ -260,12 +288,12 @@ if y_end == 245:
 	d4 = d4[y_srt:y_end,x_srt:x_end]
 	d5 = d5[y_srt:y_end,x_srt:x_end]
 	d6 = d6[y_srt:y_end,x_srt:x_end]
-	de1 = d1[y_srt:y_end,x_srt:x_end]
-	de2 = d2[y_srt:y_end,x_srt:x_end]
-	de3 = d3[y_srt:y_end,x_srt:x_end]
-	de4 = d4[y_srt:y_end,x_srt:x_end]
-	de5 = d5[y_srt:y_end,x_srt:x_end]
-	de6 = d6[y_srt:y_end,x_srt:x_end]
+	de1 = de1[y_srt:y_end,x_srt:x_end]
+	de2 = de2[y_srt:y_end,x_srt:x_end]
+	de3 = de3[y_srt:y_end,x_srt:x_end]
+	de4 = de4[y_srt:y_end,x_srt:x_end]
+	de5 = de5[y_srt:y_end,x_srt:x_end]
+	de6 = de6[y_srt:y_end,x_srt:x_end]
 elif y_end == 244:
 	d1 = np.vstack((d1[y_srt:y_end,x_srt:x_end],extra_row))
 	d2 = np.vstack((d2[y_srt:y_end,x_srt:x_end],extra_row))
@@ -273,12 +301,12 @@ elif y_end == 244:
 	d4 = np.vstack((d4[y_srt:y_end,x_srt:x_end],extra_row))
 	d5 = np.vstack((d5[y_srt:y_end,x_srt:x_end],extra_row))
 	d6 = np.vstack((d6[y_srt:y_end,x_srt:x_end],extra_row))
-	de1 = np.vstack((d1[y_srt:y_end,x_srt:x_end],extra_row))
-	de2 = np.vstack((d2[y_srt:y_end,x_srt:x_end],extra_row))
-	de3 = np.vstack((d3[y_srt:y_end,x_srt:x_end],extra_row))
-	de4 = np.vstack((d4[y_srt:y_end,x_srt:x_end],extra_row))
-	de5 = np.vstack((d5[y_srt:y_end,x_srt:x_end],extra_row))
-	de6 = np.vstack((d6[y_srt:y_end,x_srt:x_end],extra_row))
+	de1 = np.vstack((de1[y_srt:y_end,x_srt:x_end],extra_row))
+	de2 = np.vstack((de2[y_srt:y_end,x_srt:x_end],extra_row))
+	de3 = np.vstack((de3[y_srt:y_end,x_srt:x_end],extra_row))
+	de4 = np.vstack((de4[y_srt:y_end,x_srt:x_end],extra_row))
+	de5 = np.vstack((de5[y_srt:y_end,x_srt:x_end],extra_row))
+	de6 = np.vstack((de6[y_srt:y_end,x_srt:x_end],extra_row))
 elif y_end == 243:
 	d1 = np.vstack((d1[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
 	d2 = np.vstack((d2[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
@@ -286,12 +314,12 @@ elif y_end == 243:
 	d4 = np.vstack((d4[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
 	d5 = np.vstack((d5[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
 	d6 = np.vstack((d6[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
-	de1 = np.vstack((d1[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
-	de2 = np.vstack((d2[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
-	de3 = np.vstack((d3[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
-	de4 = np.vstack((d4[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
-	de5 = np.vstack((d5[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
-	de6 = np.vstack((d6[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	de1 = np.vstack((de1[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	de2 = np.vstack((de2[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	de3 = np.vstack((de3[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	de4 = np.vstack((de4[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	de5 = np.vstack((de5[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
+	de6 = np.vstack((de6[y_srt:y_end,x_srt:x_end],np.vstack((extra_row,extra_row))))
 else:
 	sys.exit("Excluding too many fibers. This script not equipt to handel this")
 
@@ -319,13 +347,15 @@ exptime = int(h1['EXPTIME']) #this is the exposure time of an image
 #find length of one spectrum in a fiber after it is trimmed
 ln = len(d1[0])
 
+print ln, len(wave)
+
 
 #-----------------------------------#
 # GET EXTINCTION CURVE FOR MCDONALD #
 #-----------------------------------#
 
 #load in the extinction curve for McDonald and use airmass derived from the dither file 
-elam, ecoeff = np.loadtxt('/Users/Briana/Documents/cure/virusp1/scripts/extinc_McD.dat', usecols = (0,1), unpack=True)
+elam, ecoeff = np.loadtxt(op.join(vp_redux_path,'extinc_McD.dat'), usecols = (0,1), unpack=True)
 f = interpolate.interp1d(x=elam*10.0, y=ecoeff)
 ecoeffint = f(wave)
 
@@ -341,6 +371,8 @@ for i in range(len(filelis)):
 
 	dith = dith_lis[i]
 	derr = derr_lis[i]
+
+	print np.shape(dith), np.shape(derr)
 
 	for f in range(num_fibs):
 
@@ -371,8 +403,16 @@ for i in range(len(filelis)):
 
 		err_spec = derr[f]
 
+		#extinct standard star for airmass sense the sensitivity function is not dependent on airmass
+		err_spec = err_spec*(10.0**(-0.4*ecoeffint*airmass))
+
+		#np.divide spectrum by exposure time to get per sec
+		spec_err_perpix = np.divide(err_spec,exptime) #DN/s/pixel
+		#np.divide spectrum by wavelength per pixel to get per A b/c this is invariant 
+		spec_err_perA = np.divide(spec_err_perpix,wave_sol) #DN/s/A
+
 		#np.divide by the sensitivity function to get the error frame in flux units 
-		fluxcal_err = np.divide(err_spec,sens_func_interp)
+		fluxcal_err = np.divide(spec_err_perA,sens_func_interp)
 		derr[f] = fluxcal_err
 
 	if save_fits:
